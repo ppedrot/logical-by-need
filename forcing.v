@@ -50,6 +50,9 @@ Ltac simplify_vset_hyp H :=
   repeat rewrite Decidable.not_or_iff in H;
   repeat (fold_not H).
 
+Ltac simplify_vset_hyps :=
+  repeat match goal with [ H : ?P |- _ ] => simplify_vset_hyp H end.
+
 Ltac pick x :=
   let l := get Var.t (@nil Var.t) ltac:(fun l => l) in
   let ls := get VSet.t (@nil VSet.t) ltac:(fun l => l) in
@@ -66,9 +69,6 @@ Ltac pick x :=
   repeat rewrite Decidable.not_or_iff in H;
   repeat (fold_not H)
   .
-
-Goal forall x y z : Var.t, True.
-intros. pick q.
 
 Inductive term :=
 | fvar : Var.t -> term
@@ -165,10 +165,19 @@ Lemma open_subst_trans : forall t x r,
   ~ VSet.In x (fv t) -> [ t << fvar x | x := r ] = t << r.
 Proof.
 intros t; generalize 0.
-induction t; intros m x r Hx; cbn in *;
-repeat match goal with [ H : ?P |- _ ] => simplify_vset_hyp H end; f_equal; intuition eauto.
+induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
 + destruct Nat.eq_dec; cbn; [destruct eq_dec|]; intuition.
+Qed.
+
+Lemma Term_subst_distr : forall t u x r, Term r ->
+  [ t << u | x := r ] = [t | x := r] << [u | x := r].
+Proof.
+intros t; generalize 0.
+induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
++ destruct eq_dec; intuition eauto.
+  rewrite Term_open_idem; now intuition.
++ destruct Nat.eq_dec; cbn; intuition.
 Qed.
 
 Lemma Term_subst_compat : forall t x r,
