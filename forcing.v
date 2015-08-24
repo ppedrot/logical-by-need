@@ -98,7 +98,7 @@ end.
 
 Notation "t << u" := (open t 0 u) (at level 50, left associativity).
 
-Inductive Term : term -> Prop :=
+Inductive Term : term -> Type :=
 | Term_fvar : forall x, Term (fvar x)
 | Term_appl : forall t u, Term t -> Term u -> Term (appl t u)
 | Term_abst : forall L t,
@@ -141,6 +141,8 @@ match t with
 | comp t u => comp (close t x n) (close u x n)
 | refl => refl
 end.
+
+Notation "λ[ x ] t" := (λ (close t x 0))%term (at level 80, t at level 0, format "λ[ x ] t") : trm_scope.
 
 Ltac gather_ f :=
   get Var.t (@nil Var.t) ltac:(fun l =>
@@ -245,26 +247,67 @@ destruct eq_dec; cbn in *; simplify_vset_hyps; intuition.
 Qed.
 
 (*
+Lemma open_inj : forall L t u,
+  (forall x, ~ VSet.In x L -> t << fvar x = u << fvar x) -> t = u.
+Proof.
+intros L t; revert L; generalize 0.
+induction t; intros ? L u H; cbn in *;
+pick x; (refine ((fun H => _) (H x _)); [|intuition]);
+destruct u; cbn in H; repeat destruct Nat.eq_dec; cbn in *; simplify_vset_hyps; try intuition congruence.
+f_equal; intuition eauto.*)
+
+(*
 Lemma open_close : forall t x, Term t -> (close t x 0) << (fvar x) = t.
 Proof.
 intros t x Ht; generalize 0.
 induction Ht; intros; cbn in *; f_equal; intuition eauto.
 + destruct eq_dec; cbn; intuition.
   destruct Nat.eq_dec; intuition congruence.
-+
++ pick y.
+
 *)
 
-Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))).
+Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct t} : term.
+Proof.
+refine (
+match Ht in Term t return term with
+| Term_fvar x => fvar x @ fvar ω @ _
+| Term_appl t u Ht Hu => _ @ _
+| Term_abst L t Ht =>
+  let (x, Hx) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) L) in
+  λ[x] (forcing σ ω (t << fvar x) (Ht x _))
+| Term_comp t u Ht Hu => _
+| Term_refl => _
+end%term
+).
+Defined.
 
-Fixpoint lift σ α t {struct t} := VSet.fold (fun x t => lift1 x α t) σ t.
-
-Fixpoint forcing (σ : VSet.t) ω t {struct t} : term :=
-match t with
-| bvar n => bvar n
-| fvar x => fvar x @ fvar ω @ refl
-| appl t u =>
-  let '(x, _) := fresh (fv u) in
-  appl (forcing σ ω t) (λ λ u)
-| abst t => t
-| _ => t
+match Ht with
+| bvar n => bvar n @ fvar ω @ refl
+| fvar x => fvar x
+| appl t u => appl (forcing σ ω t) (λ[ω] λ (forcing (cons 0 σ) ω u))
+| abst t => abst (forcing (List.map S σ) ω t)
+| comp t u => comp (forcing σ ω t) (forcing σ ω u)
+| refl => refl
 end.
+
+(* Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))). *)
+
+(* Fixpoint lift σ α t {struct t} := VSet.fold (fun x t => lift1 x α t) σ t. *)
+
+Fixpoint forcing (σ : list nat) (ω : Var.t) t {struct t} : term :=
+match t with
+| bvar n => bvar n @ fvar ω @ refl
+| fvar x => fvar x
+| appl t u => appl (forcing σ ω t) (λ[ω] λ (forcing (cons 0 σ) ω u))
+| abst t => abst (forcing (List.map S σ) ω t)
+| comp t u => comp (forcing σ ω t) (forcing σ ω u)
+| refl => refl
+end.
+
+Definition is_pure t := match t with
+| refl | comp _ _ => False
+| _ => True
+end.
+
+Lemma forcing_fv
