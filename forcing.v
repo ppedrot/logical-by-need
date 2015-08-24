@@ -21,7 +21,7 @@ Module Import VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
 Ltac check_not_in l x :=
 match l with
 | nil => idtac
-| cons ?y ?l => try (constr_eq x y; fail 2) ; check_not_in l x
+| cons ?y ?l => try (constr_eq x y; fail 2 x y) ; check_not_in l x
 end.
 
 Ltac get T l f :=
@@ -52,23 +52,6 @@ Ltac simplify_vset_hyp H :=
 
 Ltac simplify_vset_hyps :=
   repeat match goal with [ H : ?P |- _ ] => simplify_vset_hyp H end.
-
-Ltac pick x :=
-  let l := get Var.t (@nil Var.t) ltac:(fun l => l) in
-  let ls := get VSet.t (@nil VSet.t) ltac:(fun l => l) in
-  let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
-  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r0) in
-  pose (x := fresh s);
-  cbn [List.fold_left] in x;
-  let H := fresh in
-  destruct x as [x H];
-  repeat rewrite VSet.add_spec in H;
-  repeat rewrite VSet.union_spec in H;
-  repeat rewrite empty_iff in H;
-  unfold not in H;
-  repeat rewrite Decidable.not_or_iff in H;
-  repeat (fold_not H)
-  .
 
 Inductive term :=
 | fvar : Var.t -> term
@@ -140,6 +123,20 @@ match t with
 | refl => refl
 end.
 
+Ltac pick x :=
+  get Var.t (@nil Var.t) ltac:(fun l =>
+  get VSet.t (@nil VSet.t) ltac:(fun ls =>
+  get term (@nil term) ltac:(fun lt =>
+  let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
+(*   let r1 := constr:(List.fold_left (fu *)
+  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r0) in
+  pose (x := fresh s);
+  cbn [List.fold_left] in x;
+  let H := fresh in
+  destruct x as [x H];
+  simplify_vset_hyp H
+  ))).
+
 Inductive red : term -> term -> Prop :=
 | red_beta : forall t u, red (appl (abst t) u) (t << u)
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
@@ -180,17 +177,31 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct Nat.eq_dec; cbn; intuition.
 Qed.
 
+Lemma Term_subst_idem : forall t x r, ~ VSet.In x (fv t) -> [ t | x := r ] = t.
+Proof.
+induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
++ destruct eq_dec; intuition eauto.
+Qed.
+
+Lemma Term_subst_comm : forall t u x r, Term r ->
+  [ t << u | x := r ] = [t | x := r] << u.
+Proof.
+intros.
+rewrite Term_subst_compat
+
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
 Proof.
 intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
-+ apply Term_abst with L; intros.
-  pick y; assert (Term [t | x := r]).
-  { rewrite <- (Term_open_idem t 0 (fvar y)).
-    
- intuition eauto.
-  rewrite Term_open_idem.
++
+pick y.
+
+  apply Term_abst with L; intros.
+  rewrite 
+  let l := get Var.t (@nil Var.t) ltac:(fun l => l) in
+  let ls := get VSet.t (@nil VSet.t) ltac:(fun l => l) in
+  idtac l.
 
 
  econstructor. (VSet.add x L).
