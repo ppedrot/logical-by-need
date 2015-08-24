@@ -267,7 +267,7 @@ induction Ht; intros; cbn in *; f_equal; intuition eauto.
 
 *)
 
-Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct t} : term.
+Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct Ht} : term.
 Proof.
 refine (
 match Ht in Term t return term with
@@ -276,13 +276,13 @@ match Ht in Term t return term with
   let (α, _) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) (fv u)) in
   (forcing σ ω t Ht) @ λ[ω] λ[α] (forcing (cons α σ) ω u Hu)
 | Term_abst L t Ht =>
-  let (x, Hx) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) L) in
-  λ[x] (forcing σ ω (t << fvar x) (Ht x _))
+  let (x, Hx) := fresh (VSet.union L (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) VSet.empty)) in
+  λ[x] (forcing σ ω _ (Ht x _))
 | Term_comp t u Ht Hu => comp (forcing σ ω t Ht) (forcing σ ω u Hu)
 | Term_refl => refl
 end%term
 ).
-Show Proof.
+clear - Hx; abstract (simplify_vset_hyps; intuition eauto).
 Defined.
 
 match Ht with
