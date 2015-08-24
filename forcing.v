@@ -271,8 +271,10 @@ Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct t} : ter
 Proof.
 refine (
 match Ht in Term t return term with
-| Term_fvar x => fvar x @ fvar ω @ _
-| Term_appl t u Ht Hu => _ @ _
+| Term_fvar x => fvar x @ fvar ω @ (List.fold_left (fun accu x => comp (fvar x) accu) σ refl)
+| Term_appl t u Ht Hu =>
+  let (α, _) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) (fv u)) in
+  (forcing σ ω t Ht) @ λ[ω] λ[α] (forcing (cons α σ) ω u Hu)
 | Term_abst L t Ht =>
   let (x, Hx) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) L) in
   λ[x] (forcing σ ω (t << fvar x) (Ht x _))
@@ -280,6 +282,7 @@ match Ht in Term t return term with
 | Term_refl => refl
 end%term
 ).
+Show Proof.
 Defined.
 
 match Ht with
