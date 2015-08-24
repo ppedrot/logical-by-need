@@ -26,7 +26,7 @@ end.
 
 Ltac get T l f :=
 match goal with
-| [ x : T |- _ ] => check_not_in l x; get T (cons x l) f
+| [ x : ?T' |- _ ] => unify T T'; check_not_in l x; get T (cons x l) f
 | _ => f l
 end.
 
@@ -246,6 +246,17 @@ induction t; intros; cbn in *; simplify_vset_hyps; simplify_vset_goal; intuition
 destruct eq_dec; cbn in *; simplify_vset_hyps; intuition.
 Qed.
 
+Lemma Term_close : forall t x, Term t -> Term (λ[x] t).
+Proof.
+intros t x Ht.
+apply Term_abst with (fv t).
+induction Ht; intros; cbn in *; simplify_vset_hyps; intuition eauto.
++ destruct eq_dec; cbn; eauto.
++ gather L'; apply Term_abst with L'; intros; unfold L' in *; simplify_vset_hyps.
+  admit.
+Qed.
+
+apply X.
 (*
 Lemma open_inj : forall L t u,
   (forall x, ~ VSet.In x L -> t << fvar x = u << fvar x) -> t = u.
@@ -267,16 +278,22 @@ induction Ht; intros; cbn in *; f_equal; intuition eauto.
 
 *)
 
+Fixpoint comps (σ : list Var.t) : term :=
+match σ with
+| nil => refl
+| cons x σ => comp (fvar x) (comps σ)
+end.
+
 Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct Ht} : term.
 Proof.
 refine (
 match Ht in Term t return term with
-| Term_fvar x => fvar x @ fvar ω @ (List.fold_left (fun accu x => comp (fvar x) accu) σ refl)
+| Term_fvar x => fvar x @ fvar ω @ comps σ
 | Term_appl t u Ht Hu =>
   let (α, _) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) (fv u)) in
   (forcing σ ω t Ht) @ λ[ω] λ[α] (forcing (cons α σ) ω u Hu)
 | Term_abst L t Ht =>
-  let (x, Hx) := fresh (VSet.union L (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) VSet.empty)) in
+  let (x, Hx) := fresh (VSet.union L (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
   λ[x] (forcing σ ω _ (Ht x _))
 | Term_comp t u Ht Hu => comp (forcing σ ω t Ht) (forcing σ ω u Hu)
 | Term_refl => refl
@@ -285,14 +302,15 @@ end%term
 clear - Hx; abstract (simplify_vset_hyps; intuition eauto).
 Defined.
 
-match Ht with
-| bvar n => bvar n @ fvar ω @ refl
-| fvar x => fvar x
-| appl t u => appl (forcing σ ω t) (λ[ω] λ (forcing (cons 0 σ) ω u))
-| abst t => abst (forcing (List.map S σ) ω t)
-| comp t u => comp (forcing σ ω t) (forcing σ ω u)
-| refl => refl
-end.
+Lemma Term_forcing : forall σ ω t Ht, Term (forcing σ ω t Ht).
+Proof.
+induction Ht; cbn in *; intuition eauto.
++ repeat constructor; induction σ; cbn; intuition eauto.
++ destruct fresh as [α Hα].
+  repeat constructor; intuition eauto.
+
+Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
+  VSet.In (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
 
 (* Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))). *)
 
