@@ -129,8 +129,8 @@ Lemma Term_open_idem : forall t n r,
 Proof.
 intros t n r Ht; revert n.
 induction Ht; intros n; cbn in *; f_equal; intuition eauto.
-
-
+pick x; erewrite <- (open_idem_core _ 0); [intuition|omega|symmetry; intuition eauto].
+Qed.
 
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
