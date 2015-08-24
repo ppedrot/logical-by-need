@@ -183,11 +183,14 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
 Qed.
 
-Lemma Term_subst_comm : forall t u x r, Term r ->
+Lemma Term_subst_comm : forall t u x r, Term r -> ~ VSet.In x (fv u) ->
   [ t << u | x := r ] = [t | x := r] << u.
 Proof.
 intros.
-rewrite Term_subst_compat
+rewrite <- (Term_subst_idem u x r) at 2; [|assumption].
+apply Term_subst_distr; assumption.
+Qed.
+
 
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
