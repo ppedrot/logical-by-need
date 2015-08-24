@@ -276,8 +276,8 @@ match Ht in Term t return term with
 | Term_abst L t Ht =>
   let (x, Hx) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) L) in
   λ[x] (forcing σ ω (t << fvar x) (Ht x _))
-| Term_comp t u Ht Hu => _
-| Term_refl => _
+| Term_comp t u Ht Hu => comp (forcing σ ω t Ht) (forcing σ ω u Hu)
+| Term_refl => refl
 end%term
 ).
 Defined.
