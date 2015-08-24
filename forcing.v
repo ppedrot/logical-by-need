@@ -95,6 +95,10 @@ match goal with
 | _ => f l
 end.
 
+Ltac fold_not H :=
+  let t := type of H in
+  match t with context [?P -> False] => fold (not P) in H end.
+
 Ltac pick x :=
   get Var.t (@nil Var.t) ltac:(fun l =>
   get VSet.t (@nil VSet.t) ltac:(fun ls =>
@@ -108,7 +112,8 @@ Ltac pick x :=
   repeat rewrite VSet.union_spec in H;
   repeat rewrite empty_iff in H;
   unfold not in H;
-  repeat rewrite Decidable.not_or_iff in H
+  repeat rewrite Decidable.not_or_iff in H;
+  repeat (fold_not H)
   )).
 
 Lemma Term_subst_compat : forall t x r,
