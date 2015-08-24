@@ -67,16 +67,9 @@ Inductive red : term -> term -> Prop :=
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
 | red_appl_r : forall t u r, red u r -> red (appl t u) (appl t r).
 
-Definition lift1 x β t := subst t x (λ λ (fvar x @ bvar 1 @ t)).
+Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))).
 
-Fixpoint lift σ β t {struct t} :=
-match t with
-| fvar x => if VSet.mem x σ then else
-| bvar m => bvar m
-| appl t u => appl (subst t x r) (subst u x r)
-| abst t => abst (subst t x r)
-end.
-
+Fixpoint lift σ α t {struct t} := VSet.fold (fun x t => lift1 x α t) σ t.
 
 Fixpoint forcing σ ω t {struct t} :=
 match t with
