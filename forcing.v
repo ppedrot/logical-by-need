@@ -66,6 +66,16 @@ end.
 
 Notation "[ t | x := r ]" := (subst t x r).
 
+Fixpoint close (t : term) (x : Var.t) (n : nat) :=
+match t with
+| fvar y => if Var.eq_dec x y then bvar n else fvar y
+| bvar m => bvar m
+| appl t u => appl (close t x n) (close u x n)
+| abst t => abst (close t x (S n))
+| comp t u => comp (close t x n) (close u x n)
+| refl => refl
+end.
+
 Inductive red : term -> term -> Prop :=
 | red_beta : forall t u, red (appl (abst t) u) (t << u)
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
@@ -79,7 +89,7 @@ Fixpoint forcing (σ : VSet.t) ω t {struct t} : term :=
 match t with
 | bvar n => bvar n
 | fvar x => fvar x @ fvar ω @ refl
-| appl t u => t
+| appl t u => appl (forcing σ ω t) (λ λ u)
 | abst t => t
 | _ => t
 end.
