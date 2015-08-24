@@ -54,6 +54,8 @@ Inductive Term : term -> Prop :=
 | Term_refl : Term refl
 .
 
+Hint Constructors Term.
+
 Fixpoint subst (t : term) (x : Var.t) (r : term) :=
 match t with
 | fvar y => if Var.eq_dec x y then r else fvar y
@@ -80,6 +82,30 @@ Inductive red : term -> term -> Prop :=
 | red_beta : forall t u, red (appl (abst t) u) (t << u)
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
 | red_appl_r : forall t u r, red u r -> red (appl t u) (appl t r).
+
+Ltac check_not_in l x :=
+match l with
+| nil => idtac
+| cons ?y ?l => (unify x y || check_not_in l)
+end.
+
+Ltac vars l f :=
+match goal with
+| [ x : Var.t |- _ ] => check_not_in l x; vars (cons x l) f
+| _ => f l
+end.
+
+Lemma Term_subst_compat : forall t x r,
+  Term t -> Term r -> Term [t | x := r].
+Proof.
+intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
++ destruct eq_dec; subst; intuition.
++
+check
+vars (@nil Var.t) ltac:(fun l => pose (L := l)).
+
+ econstructor. (VSet.add x L).
+
 
 Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))).
 
