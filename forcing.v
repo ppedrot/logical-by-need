@@ -18,6 +18,58 @@ Module Spec
 
 Module Import VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
 
+Ltac check_not_in l x :=
+match l with
+| nil => idtac
+| cons ?y ?l => try (constr_eq x y; fail 2) ; check_not_in l x
+end.
+
+Ltac get T l f :=
+match goal with
+| [ x : T |- _ ] => check_not_in l x; get T (cons x l) f
+| _ => f l
+end.
+
+Ltac fold_not H :=
+  let t := type of H in
+  match t with context [?P -> False] => fold (not P) in H end.
+
+Ltac simplify_vset_one_hyp H :=
+match type of H with
+| context [VSet.In ?x (VSet.union ?p ?q)] =>
+  rewrite VSet.union_spec in H
+| context [VSet.In ?x (VSet.add ?p ?q)] =>
+  rewrite VSet.add_spec in H
+| context [VSet.In ?x VSet.empty] =>
+  rewrite VSetFacts.empty_iff in H
+end.
+
+Ltac simplify_vset_hyp H :=
+  repeat simplify_vset_one_hyp H; 
+  unfold not in H;
+  repeat rewrite Decidable.not_or_iff in H;
+  repeat (fold_not H).
+
+Ltac pick x :=
+  let l := get Var.t (@nil Var.t) ltac:(fun l => l) in
+  let ls := get VSet.t (@nil VSet.t) ltac:(fun l => l) in
+  let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
+  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r0) in
+  pose (x := fresh s);
+  cbn [List.fold_left] in x;
+  let H := fresh in
+  destruct x as [x H];
+  repeat rewrite VSet.add_spec in H;
+  repeat rewrite VSet.union_spec in H;
+  repeat rewrite empty_iff in H;
+  unfold not in H;
+  repeat rewrite Decidable.not_or_iff in H;
+  repeat (fold_not H)
+  .
+
+Goal forall x y z : Var.t, True.
+intros. pick q.
+
 Inductive term :=
 | fvar : Var.t -> term
 | bvar : nat -> term
@@ -68,6 +120,16 @@ end.
 
 Notation "[ t | x := r ]" := (subst t x r).
 
+Fixpoint fv (t : term) : VSet.t :=
+match t with
+| fvar y => VSet.add y VSet.empty
+| bvar m => VSet.empty
+| appl t u => VSet.union (fv t) (fv u)
+| abst t => fv t
+| comp t u => VSet.union (fv t) (fv u)
+| refl => VSet.empty
+end.
+
 Fixpoint close (t : term) (x : Var.t) (n : nat) :=
 match t with
 | fvar y => if Var.eq_dec x y then bvar n else fvar y
@@ -82,39 +144,6 @@ Inductive red : term -> term -> Prop :=
 | red_beta : forall t u, red (appl (abst t) u) (t << u)
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
 | red_appl_r : forall t u r, red u r -> red (appl t u) (appl t r).
-
-Ltac check_not_in l x :=
-match l with
-| nil => idtac
-| cons ?y ?l => try (constr_eq x y; fail 2) ; check_not_in l x
-end.
-
-Ltac get T l f :=
-match goal with
-| [ x : T |- _ ] => check_not_in l x; get T (cons x l) f
-| _ => f l
-end.
-
-Ltac fold_not H :=
-  let t := type of H in
-  match t with context [?P -> False] => fold (not P) in H end.
-
-Ltac pick x :=
-  get Var.t (@nil Var.t) ltac:(fun l =>
-  get VSet.t (@nil VSet.t) ltac:(fun ls =>
-  let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
-  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r0) in
-  pose (x := fresh s);
-  cbn [List.fold_left] in x;
-  let H := fresh in
-  destruct x as [x H];
-  repeat rewrite VSet.add_spec in H;
-  repeat rewrite VSet.union_spec in H;
-  repeat rewrite empty_iff in H;
-  unfold not in H;
-  repeat rewrite Decidable.not_or_iff in H;
-  repeat (fold_not H)
-  )).
 
 Lemma open_idem_core : forall t n1 n2 r1 r2, n1 <> n2 ->
   open t n1 r1 = open (open t n1 r1) n2 r2 -> t = open t n2 r2.
@@ -132,13 +161,27 @@ induction Ht; intros n; cbn in *; f_equal; intuition eauto.
 pick x; erewrite <- (open_idem_core _ 0); [|omega|symmetry]; intuition eauto.
 Qed.
 
+Lemma open_subst_trans : forall t x r,
+  ~ VSet.In x (fv t) -> [ t << fvar x | x := r ] = t << r.
+Proof.
+intros t; generalize 0.
+induction t; intros m x r Hx; cbn in *;
+repeat match goal with [ H : ?P |- _ ] => simplify_vset_hyp H end; f_equal; intuition eauto.
++ destruct eq_dec; intuition eauto.
++ destruct Nat.eq_dec; cbn; [destruct eq_dec|]; intuition.
+Qed.
+
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
 Proof.
 intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
 + apply Term_abst with L; intros.
-  
+  pick y; assert (Term [t | x := r]).
+  { rewrite <- (Term_open_idem t 0 (fvar y)).
+    
+ intuition eauto.
+  rewrite Term_open_idem.
 
 
  econstructor. (VSet.add x L).
