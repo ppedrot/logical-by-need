@@ -98,7 +98,6 @@ end.
 Ltac pick x :=
   get Var.t (@nil Var.t) ltac:(fun l =>
   get VSet.t (@nil VSet.t) ltac:(fun ls =>
-  let s := fresh "L" in
   let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
   let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r0) in
   pose (x := fresh s);
@@ -107,19 +106,17 @@ Ltac pick x :=
   destruct x as [x H];
   repeat rewrite VSet.add_spec in H;
   repeat rewrite VSet.union_spec in H;
-  repeat rewrite empty_iff in H
+  repeat rewrite empty_iff in H;
+  unfold not in H;
+  repeat rewrite Decidable.not_or_iff in H
   )).
-
-Goal forall x y z : Var.t, VSet.t -> True.
-intros.
-pick Foo.
 
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
 Proof.
 intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
-+
++ pick y; econstructor.
 
 
  econstructor. (VSet.add x L).
