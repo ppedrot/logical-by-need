@@ -30,9 +30,12 @@ match goal with
 | _ => f l
 end.
 
-Ltac fold_not H :=
+Ltac fold_not_hyp H :=
   let t := type of H in
   match t with context [?P -> False] => fold (not P) in H end.
+
+Ltac fold_not_goal :=
+  match goal with |- context [?P -> False] => fold (not P) end.
 
 Ltac simplify_vset_one_hyp H :=
 match type of H with
@@ -44,11 +47,27 @@ match type of H with
   rewrite VSetFacts.empty_iff in H
 end.
 
+Ltac simplify_vset_one_goal :=
+match goal with
+| |- context [VSet.In ?x (VSet.union ?p ?q)] =>
+  rewrite VSet.union_spec
+| |- context [VSet.In ?x (VSet.add ?p ?q)] =>
+  rewrite VSet.add_spec
+| |- context [VSet.In ?x VSet.empty] =>
+  rewrite VSetFacts.empty_iff
+end.
+
 Ltac simplify_vset_hyp H :=
   repeat simplify_vset_one_hyp H; 
   unfold not in H;
   repeat rewrite Decidable.not_or_iff in H;
-  repeat (fold_not H).
+  repeat (fold_not_hyp H).
+
+Ltac simplify_vset_goal :=
+  repeat simplify_vset_one_goal;
+  unfold not;
+  repeat rewrite Decidable.not_or_iff;
+  repeat fold_not_goal.
 
 Ltac simplify_vset_hyps :=
   repeat match goal with [ H : ?P |- _ ] => progress (simplify_vset_hyp H) end.
@@ -210,6 +229,31 @@ intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
   simplify_vset_hyps; intuition eauto.
 Qed.
 
+Lemma close_open : forall t x, ~ VSet.In x (fv t) -> close (t << fvar x) x 0 = t.
+Proof.
+intros t; generalize 0.
+induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
++ destruct eq_dec; cbn; intuition.
++ destruct Nat.eq_dec; cbn; intuition.
+  destruct eq_dec; intuition eauto.
+Qed.
+
+Lemma close_fv : forall t x n, ~ VSet.In x (fv (close t x n)).
+Proof.
+induction t; intros; cbn in *; simplify_vset_hyps; simplify_vset_goal; intuition eauto.
+destruct eq_dec; cbn in *; simplify_vset_hyps; intuition.
+Qed.
+
+(*
+Lemma open_close : forall t x, Term t -> (close t x 0) << (fvar x) = t.
+Proof.
+intros t x Ht; generalize 0.
+induction Ht; intros; cbn in *; f_equal; intuition eauto.
++ destruct eq_dec; cbn; intuition.
+  destruct Nat.eq_dec; intuition congruence.
++
+*)
+
 Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))).
 
 Fixpoint lift σ α t {struct t} := VSet.fold (fun x t => lift1 x α t) σ t.
@@ -218,8 +262,9 @@ Fixpoint forcing (σ : VSet.t) ω t {struct t} : term :=
 match t with
 | bvar n => bvar n
 | fvar x => fvar x @ fvar ω @ refl
-| appl t u => appl (forcing σ ω t) (λ λ u)
+| appl t u =>
+  let '(x, _) := fresh (fv u) in
+  appl (forcing σ ω t) (λ λ u)
 | abst t => t
 | _ => t
 end.
-
