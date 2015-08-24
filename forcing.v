@@ -51,7 +51,7 @@ Ltac simplify_vset_hyp H :=
   repeat (fold_not H).
 
 Ltac simplify_vset_hyps :=
-  repeat match goal with [ H : ?P |- _ ] => simplify_vset_hyp H end.
+  repeat match goal with [ H : ?P |- _ ] => progress (simplify_vset_hyp H) end.
 
 Inductive term :=
 | fvar : Var.t -> term
@@ -123,19 +123,28 @@ match t with
 | refl => refl
 end.
 
-Ltac pick x :=
+Ltac gather_ f :=
   get Var.t (@nil Var.t) ltac:(fun l =>
   get VSet.t (@nil VSet.t) ltac:(fun ls =>
   get term (@nil term) ltac:(fun lt =>
   let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
-(*   let r1 := constr:(List.fold_left (fu *)
-  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r0) in
+  let r1 := constr:(List.fold_left (fun accu t => VSet.union (fv t) accu) lt r0) in
+  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r1) in
+  f s))).
+
+Ltac pick x :=
+  gather_ ltac:(fun s =>
   pose (x := fresh s);
   cbn [List.fold_left] in x;
   let H := fresh in
   destruct x as [x H];
   simplify_vset_hyp H
-  ))).
+  ).
+
+Ltac gather L :=
+  gather_ ltac:(fun s =>
+  pose (L := s);
+  cbn [fv List.fold_left] in L).
 
 Inductive red : term -> term -> Prop :=
 | red_beta : forall t u, red (appl (abst t) u) (t << u)
@@ -191,24 +200,15 @@ rewrite <- (Term_subst_idem u x r) at 2; [|assumption].
 apply Term_subst_distr; assumption.
 Qed.
 
-
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
 Proof.
 intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
-+
-pick y.
-
-  apply Term_abst with L; intros.
-  rewrite 
-  let l := get Var.t (@nil Var.t) ltac:(fun l => l) in
-  let ls := get VSet.t (@nil VSet.t) ltac:(fun l => l) in
-  idtac l.
-
-
- econstructor. (VSet.add x L).
-
++ gather L'; apply Term_abst with L'; intros; unfold L' in *.
+  simplify_vset_hyps; rewrite <- Term_subst_comm; cbn in *; intuition eauto.
+  simplify_vset_hyps; intuition eauto.
+Qed.
 
 Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))).
 
