@@ -1,5 +1,5 @@
 Require MSets NArith Wellfounded.
-Require Import Program Setoid Morphisms BinNat Relations.
+Require Import Program Setoid Morphisms BinNat Relations Omega.
 
 Module Type Fresh
   (Var : Orders.UsualOrderedType)
@@ -116,12 +116,29 @@ Ltac pick x :=
   repeat (fold_not H)
   )).
 
+Lemma open_idem_core : forall t n1 n2 r1 r2, n1 <> n2 ->
+  open t n1 r1 = open (open t n1 r1) n2 r2 -> t = open t n2 r2.
+Proof.
+induction t; intros n1 n2 r1 r2 Hn Hrw; cbn in *; try inversion Hrw; f_equal;
+try solve [intuition eauto]; cbn in *.
+repeat (destruct PeanoNat.Nat.eq_dec; cbn in *); first [omega|intuition].
+Qed.
+
+Lemma Term_open_idem : forall t n r,
+  Term t -> open t n r = t.
+Proof.
+intros t n r Ht; revert n.
+induction Ht; intros n; cbn in *; f_equal; intuition eauto.
+
+
+
 Lemma Term_subst_compat : forall t x r,
   Term t -> Term r -> Term [t | x := r].
 Proof.
 intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
-+ pick y; econstructor.
++ apply Term_abst with L; intros.
+  
 
 
  econstructor. (VSet.add x L).
