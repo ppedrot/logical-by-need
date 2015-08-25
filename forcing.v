@@ -288,6 +288,19 @@ rewrite Term_open_idem; intuition.
 apply Term_subst_compat; intuition.
 Qed.
 
+Fixpoint Term_normalize t (π : Term t) {struct t} : Term t.
+Proof.
+refine (
+match π in Term t return Term t with
+| Term_fvar x => Term_fvar x
+| Term_appl t u π ρ => Term_appl t u (Term_normalize t π) (Term_normalize u ρ)
+| Term_abst L t π => Term_abst (fv t) _ (fun x Hx => _)
+| Term_comp t u π ρ => Term_comp t u (Term_normalize t π) (Term_normalize u ρ)
+| Term_refl => Term_refl
+end).
+Abort.
+
+
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
@@ -323,6 +336,34 @@ intros σ ω t Ht; revert σ ω; induction Ht; intros σ ω; cbn in *; intuition
   apply Term_close; intuition.
 Qed.
 
+Local Ltac dTerm π :=
+refine (match π with
+| Term_fvar x => _
+| Term_appl t u πt2 πu2 => _
+| Term_abst L t πt2 => _
+| Term_comp t u πt2 πu2 => _
+| Term_refl => _
+end); unfold IDProp; trivial.
+
+Local Ltac pop := match goal with [ H : ?P |- _ ] => revert H end.
+
+Lemma forcing_irrelevant : forall σ ω t π1 π2,
+  forcing σ ω t π1 = forcing σ ω t π2.
+Proof.
+intros σ ω t π1; revert σ ω.
+induction π1; intros σ ω π2; cbn in *.
++ dTerm π2.
++ move π2 before u; do 6 pop; dTerm π2; cbn.
+  intros; destruct fresh; cbn.
+  erewrite IHπ1_1, IHπ1_2; reflexivity.
++ move π2 before t; do 4 pop; dTerm π2; cbn.
+  intros; repeat destruct fresh; cbn; f_equal.
+  erewrite H.
+
+
+
+
+
 Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
   VSet.In x (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
 Proof.
@@ -336,8 +377,9 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
     do 2 (apply close_fv in Hy; destruct Hy as [? Hy]).
     refine ((fun IH => _) (IHHt2 _ _ _ Hy)).
     cbn in IH; simplify_vset; tauto.
++ destruct fresh as [x Hx]; cbn in *; simplify_vset.
+  apply close_fv in Hy; destruct Hy as [? Hy].
   
-+ admit.
 
 (* Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))). *)
 
