@@ -236,11 +236,9 @@ Qed.
 Lemma open_comm : forall t n1 n2 r1 r2, Term r1 -> Term r2 -> n1 <> n2 -> 
   open (open t n1 r1) n2 r2 = open (open t n2 r2) n1 r1.
 Proof.
-intros; pick x.
-rewrite <- (open_subst_trans t _ x); [|intuition eauto].
-
-*)
-(* Lemma Term_open_comm : forall t r1 r2, t << r1 . *)
+induction t; intros; cbn in *; try solve [f_equal; intuition eauto].
+repeat (destruct Nat.eq_dec; cbn); try rewrite Term_open_idem; (omega || intuition eauto).
+Qed.
 
 Lemma close_open : forall t x, ~ VSet.In x (fv t) -> close (t << fvar x) x 0 = t.
 Proof.
