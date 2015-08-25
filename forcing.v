@@ -190,19 +190,19 @@ induction Ht; intros n; cbn in *; f_equal; intuition eauto.
 pick x; erewrite <- (open_inj _ 0); [|omega|symmetry]; intuition eauto.
 Qed.
 
-Lemma open_subst_trans : forall t x r,
-  ~ VSet.In x (fv t) -> [ t << fvar x | x := r ] = t << r.
+Lemma open_subst_trans : forall t n x r,
+  ~ VSet.In x (fv t) -> [ open t n (fvar x) | x := r ] = open t n r.
 Proof.
-intros t; generalize 0.
+intros t.
 induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
 + destruct Nat.eq_dec; cbn; [destruct eq_dec|]; intuition.
 Qed.
 
-Lemma Term_subst_distr : forall t u x r, Term r ->
-  [ t << u | x := r ] = [t | x := r] << [u | x := r].
+Lemma Term_subst_distr : forall t n u x r, Term r ->
+  [ open t n u | x := r ] = open [t | x := r] n [u | x := r].
 Proof.
-intros t; generalize 0.
+intros t.
 induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
   rewrite Term_open_idem; now intuition.
@@ -233,13 +233,12 @@ intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
   simplify_vset_hyps; intuition eauto.
 Qed.
 
-(*
 Lemma open_comm : forall t n1 n2 r1 r2, Term r1 -> Term r2 -> n1 <> n2 -> 
   open (open t n1 r1) n2 r2 = open (open t n2 r2) n1 r1.
 Proof.
-induction t; intros; cbn in *; f_equal; intuition eauto.
-+ repeat destruct Nat.eq_dec; try intuition congruence.
-  subst.
+intros; pick x.
+rewrite <- (open_subst_trans t _ x); [|intuition eauto].
+
 *)
 (* Lemma Term_open_comm : forall t r1 r2, t << r1 . *)
 
@@ -312,6 +311,31 @@ Inductive OTerm n : term -> Type :=
 | OTerm_abst : forall (t : term), (OTerm (S n) t) -> OTerm n (λ t)
 | OTerm_comp : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (comp t u)
 | OTerm_refl : OTerm n refl.
+
+Fixpoint freshen n L t :=
+match n with
+| 0 => t
+| S n =>
+  let (x, _) := fresh L in
+  open (freshen n (VSet.add x L) t) n (fvar x)
+end.
+
+Lemma Term_choice : forall t n x y,
+  Term (open t n (fvar x)) -> Term (open t n (fvar y)).
+Proof.
+induction t; intros m x y Ht; cbn in *; try solve [inversion Ht; subst; intuition eauto].
++ destruct Nat.eq_dec; inversion Ht; constructor.
++ inversion Ht; subst.
+  gather L'; apply Term_abst with L'; intros z Hz.
+  unfold L' in *; simplify_vset.
+  
+
+Lemma OTerm_is_Term : forall n t, OTerm n t ->
+  Term (freshen n VSet.empty t).
+Proof.
+induction 1; cbn in *.
++ induction n; cbn in *; intuition eauto.
+  destruct fresh; cbn in *.
 
 Lemma Term_abst_weak : forall L t x,
   (forall y, ~ VSet.In y L -> Term (t << fvar y)) ->
