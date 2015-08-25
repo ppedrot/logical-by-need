@@ -306,6 +306,13 @@ match t with
 | refl => true
 end.
 
+Inductive OTerm n : term -> Type :=
+| OTerm_fvar : forall x : Var.t, OTerm n (fvar x)
+| OTerm_appl : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (t @ u)
+| OTerm_abst : forall (t : term), (OTerm (S n) t) -> OTerm n (λ t)
+| OTerm_comp : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (comp t u)
+| OTerm_refl : OTerm n refl.
+
 Lemma Term_abst_weak : forall L t x,
   (forall y, ~ VSet.In y L -> Term (t << fvar y)) ->
   ~ VSet.In x (fv t) -> Term (t << fvar x).
@@ -447,6 +454,7 @@ end); unfold IDProp; trivial.
 
 Local Ltac pop := match goal with [ H : ?P |- _ ] => revert H end.
 
+(*
 Lemma forcing_irrelevant : forall σ ω t π1 π2,
   forcing σ ω t π1 = forcing σ ω t π2.
 Proof.
@@ -458,7 +466,10 @@ induction π1; intros σ ω π2; cbn in *.
   erewrite IHπ1_1, IHπ1_2; reflexivity.
 + move π2 before t; do 4 pop; dTerm π2; cbn.
   intros; repeat destruct fresh; cbn; f_equal.
+  erewrite close_subst.
+  simplify_vset_hyps.
   erewrite H.
+  
 
 *)
 
