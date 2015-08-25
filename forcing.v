@@ -286,7 +286,7 @@ refine (
 match Ht in Term t return term with
 | Term_fvar x => fvar x @ fvar ω @ comps σ
 | Term_appl t u Ht Hu =>
-  let (α, _) := fresh (List.fold_left (fun accu x => VSet.add x accu) (cons ω σ) (fv u)) in
+  let (α, _) := fresh (VSet.union (fv u) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
   (forcing σ ω t Ht) @ λ[ω] λ[α] (forcing (cons α σ) ω u Hu)
 | Term_abst L t Ht =>
   let (x, Hx) := fresh (VSet.union L (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
@@ -304,6 +304,7 @@ induction Ht; cbn in *; intuition eauto.
 + repeat constructor; induction σ; cbn; intuition eauto.
 + destruct fresh as [α Hα].
   repeat constructor; intuition eauto.
+  apply Term_close.
 
 Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
   VSet.In (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
