@@ -355,11 +355,13 @@ intros t n r Hr; revert t n; induction r as [|u r]; intros t n; cbn in *.
     replace (List.nth_error l n) with (@None term); intuition
   end.
   symmetry; apply List.nth_error_None; cbn; omega.
-+ rewrite <- IHr; cbn.
++ rewrite <- IHr; cbn; [|inversion Hr; assumption].
   clear - Hr; revert n; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
   destruct Nat.eq_dec; cbn in *.
   - subst; replace (m - m) with 0 by omega; cbn.
-  
+    admit.
+  - 
+
 Qed.
 
 Lemma Term_abst_weak : forall L t n x,
