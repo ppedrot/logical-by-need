@@ -172,7 +172,7 @@ Inductive red : term -> term -> Prop :=
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
 | red_appl_r : forall t u r, red u r -> red (appl t u) (appl t r).
 
-Lemma open_idem_core : forall t n1 n2 r1 r2, n1 <> n2 ->
+Lemma open_inj : forall t n1 n2 r1 r2, n1 <> n2 ->
   open t n1 r1 = open (open t n1 r1) n2 r2 -> t = open t n2 r2.
 Proof.
 induction t; intros n1 n2 r1 r2 Hn Hrw; cbn in *; try inversion Hrw; f_equal;
@@ -185,7 +185,7 @@ Lemma Term_open_idem : forall t n r,
 Proof.
 intros t n r Ht; revert n.
 induction Ht; intros n; cbn in *; f_equal; intuition eauto.
-pick x; erewrite <- (open_idem_core _ 0); [|omega|symmetry]; intuition eauto.
+pick x; erewrite <- (open_inj _ 0); [|omega|symmetry]; intuition eauto.
 Qed.
 
 Lemma open_subst_trans : forall t x r,
@@ -231,6 +231,16 @@ intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
   simplify_vset_hyps; intuition eauto.
 Qed.
 
+(*
+Lemma open_comm : forall t n1 n2 r1 r2, Term r1 -> Term r2 -> n1 <> n2 -> 
+  open (open t n1 r1) n2 r2 = open (open t n2 r2) n1 r1.
+Proof.
+induction t; intros; cbn in *; f_equal; intuition eauto.
++ repeat destruct Nat.eq_dec; try intuition congruence.
+  subst.
+*)
+(* Lemma Term_open_comm : forall t r1 r2, t << r1 . *)
+
 Lemma close_open : forall t x, ~ VSet.In x (fv t) -> close (t << fvar x) x 0 = t.
 Proof.
 intros t; generalize 0.
@@ -246,38 +256,24 @@ induction t; intros; cbn in *; simplify_vset_hyps; simplify_vset_goal; intuition
 destruct eq_dec; cbn in *; simplify_vset_hyps; intuition.
 Qed.
 
-Lemma Term_close : forall t x, Term t -> Term (λ[x] t).
+Lemma open_close : forall t x (n : nat) r, Term r -> ~ VSet.In x (fv r) ->
+  open (close t x n) n r = [open t n r | x := r].
 Proof.
-intros t x Ht.
-apply Term_abst with (fv t).
-induction Ht; intros; cbn in *; simplify_vset_hyps; intuition eauto.
-+ destruct eq_dec; cbn; eauto.
-+ gather L'; apply Term_abst with L'; intros; unfold L' in *; simplify_vset_hyps.
-  admit.
-Qed.
-
-apply X.
-(*
-Lemma open_inj : forall L t u,
-  (forall x, ~ VSet.In x L -> t << fvar x = u << fvar x) -> t = u.
-Proof.
-intros L t; revert L; generalize 0.
-induction t; intros ? L u H; cbn in *;
-pick x; (refine ((fun H => _) (H x _)); [|intuition]);
-destruct u; cbn in H; repeat destruct Nat.eq_dec; cbn in *; simplify_vset_hyps; try intuition congruence.
-f_equal; intuition eauto.*)
-
-(*
-Lemma open_close : forall t x, Term t -> (close t x 0) << (fvar x) = t.
-Proof.
-intros t x Ht; generalize 0.
-induction Ht; intros; cbn in *; f_equal; intuition eauto.
+intros t; induction t; intros y m r Hr Hx; cbn in *; f_equal; intuition eauto.
 + destruct eq_dec; cbn; intuition.
   destruct Nat.eq_dec; intuition congruence.
-+ pick y.
++ destruct Nat.eq_dec; intuition.
+  symmetry; apply Term_subst_idem; intuition.
+Qed.
 
-*)
-
+Lemma Term_close : forall t x, Term t -> Term (λ[x] t).
+Proof.
+intros t x Ht; gather L.
+apply Term_abst with L; intros; unfold L in *; simplify_vset_hyps.
+rewrite open_close; cbn; simplify_vset_goal; intuition.
+rewrite Term_open_idem; intuition.
+apply Term_subst_compat; intuition.
+Qed.
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
