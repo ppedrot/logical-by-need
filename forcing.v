@@ -215,8 +215,8 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
 Qed.
 
-Lemma subst_comm : forall t u x r, Term r -> ~ VSet.In x (fv u) ->
-  [ t << u | x := r ] = [t | x := r] << u.
+Lemma subst_comm : forall t n u x r, Term r -> ~ VSet.In x (fv u) ->
+  [ open t n u | x := r ] = open [t | x := r] n u.
 Proof.
 intros.
 rewrite <- (Term_subst_idem u x r) at 2; [|assumption].
