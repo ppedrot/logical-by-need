@@ -100,7 +100,7 @@ end.
 
 Notation "t << u" := (open t 0 u) (at level 50, left associativity).
 
-Inductive Term : term -> Type :=
+Inductive Term : term -> Prop :=
 | Term_fvar : forall x, Term (fvar x)
 | Term_appl : forall t u, Term t -> Term u -> Term (appl t u)
 | Term_abst : forall L t,
@@ -313,12 +313,54 @@ Inductive OTerm n : term -> Type :=
 Fixpoint opens t n r :=
 match t with
 | fvar x => fvar x
-| bvar m => match List.nth_error r m with None => bvar m | Some r => r end
+| bvar m => match List.nth_error r (m - n) with None => bvar m | Some r => r end
 | (t0 @ u)%term => (opens t0 n r @ opens u n r)%term
 | (λ t0)%term => (λ (opens t0 (S n) r))%term
 | comp t0 u => comp (opens t0 n r) (opens u n r)
 | refl => refl
 end.
+
+Fixpoint openr t n rs :=
+match rs with
+| nil => t
+| cons r rs => open (openr t (S n) rs) n r
+end.
+
+Fixpoint openl t n rs :=
+match rs with
+| nil => t
+| cons r rs => openl (open t n r) (S n) rs
+end.
+
+(* Lemma openr_openl : forall t n rs, openl t n rs = openr t n rs.
+Proof.
+intros t n rs; revert t n; induction rs as [|r rs]; intros t n; cbn in *.
++ reflexivity.
++ rewrite IHrs; clear.
+  revert n;
+  induction rs; cbn in *; intros n; intuition eauto.
+  rewrite open_comm.
+rewrite <- IHrs.
+  rewrite IHrs.
+Qed.
+ *)
+
+Lemma opens_open : forall t n r,
+  List.Forall Term r ->
+  opens t n r = openl t n r.
+Proof.
+intros t n r Hr; revert t n; induction r as [|u r]; intros t n; cbn in *.
++ revert n; induction t; intros m; cbn in *; f_equal; intuition eauto.
+  match goal with [ |- context [ List.nth_error ?l ?n ] ] =>
+    replace (List.nth_error l n) with (@None term); intuition
+  end.
+  symmetry; apply List.nth_error_None; cbn; omega.
++ rewrite <- IHr; cbn.
+  clear - Hr; revert n; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
+  destruct Nat.eq_dec; cbn in *.
+  - subst; replace (m - m) with 0 by omega; cbn.
+  
+Qed.
 
 Lemma Term_abst_weak : forall L t n x,
   (forall y, ~ VSet.In y L -> Term (open t n (fvar y))) ->
@@ -330,7 +372,7 @@ apply Term_subst_compat; intuition eauto.
 Qed.
 
 Lemma OTerm_is_Term : forall n t, OTerm n t ->
-  Term (freshen n VSet.empty t).
+  Term (opens n VSet.empty t).
 Proof.
 induction 1; cbn in *.
 + induction n; cbn in *; intuition eauto.
