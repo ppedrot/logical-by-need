@@ -215,7 +215,7 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
 Qed.
 
-Lemma Term_subst_comm : forall t u x r, Term r -> ~ VSet.In x (fv u) ->
+Lemma subst_comm : forall t u x r, Term r -> ~ VSet.In x (fv u) ->
   [ t << u | x := r ] = [t | x := r] << u.
 Proof.
 intros.
@@ -229,7 +229,7 @@ Proof.
 intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
 + gather L'; apply Term_abst with L'; intros; unfold L' in *.
-  simplify_vset_hyps; rewrite <- Term_subst_comm; cbn in *; intuition eauto.
+  simplify_vset_hyps; rewrite <- subst_comm; cbn in *; intuition eauto.
   simplify_vset_hyps; intuition eauto.
 Qed.
 
@@ -288,24 +288,124 @@ rewrite Term_open_idem; intuition.
 apply Term_subst_compat; intuition.
 Qed.
 
+Lemma close_subst : forall t x y n,
+  ~ VSet.In y (fv t) ->
+  close t x n = close [t | x := fvar y] y n.
+Proof.
+induction t; intros x y m Hy; cbn in *; simplify_vset; f_equal; intuition eauto.
+destruct eq_dec; cbn in *; destruct eq_dec; intuition.
+Qed.
+
+Fixpoint is_Term t (n : nat) {struct t} : bool :=
+match t with
+| fvar x => true
+| bvar m => m <? n
+| appl t u => is_Term t n && is_Term u n
+| abst t => is_Term t (S n)
+| comp t u => is_Term t n && is_Term u n
+| refl => true
+end.
+
+Lemma Term_abst_weak : forall L t x,
+  (forall y, ~ VSet.In y L -> Term (t << fvar y)) ->
+  ~ VSet.In x (fv t) -> Term (t << fvar x).
+Proof.
+intros; pick y.
+erewrite <- (open_subst_trans _ y); [|intuition eauto].
+apply Term_subst_compat; intuition eauto.
+Qed.
+
+(*
+Inductive STerm : term -> Type :=
+| STerm_fvar : forall x, STerm (fvar x)
+| STerm_appl : forall t u, STerm t -> STerm u -> STerm (appl t u)
+| STerm_abst : forall t,
+  (forall x, ~ VSet.In x (fv t) -> STerm (t << fvar x)) ->
+  STerm (abst t)
+| STerm_comp : forall t u, STerm t -> STerm u -> STerm (comp t u)
+| STerm_refl : STerm refl
+.
+
+Hint Constructors STerm.
+
+Lemma Term_to_STerm_aux : forall t, Term t -> STerm t * (forall x y, Term t -> STerm [t | x := fvar y]).
+Proof.
+induction 1; cbn in *; intuition eauto.
++ destruct eq_dec; intuition.
++ constructor; intros x Hx; pick y.
+  erewrite <- (open_subst_trans _ y); [|intuition eauto].
+  repeat match goal with [ H : ?P |- _ ] => apply H end.
++ constructor; intros z Hz.
+  rewrite <- subst_comm; intuition eauto; cbn in *; simplify_vset.
+apply X.
+admit.
+admit.
+  apply X; intuition eauto.
+admit.
+  erewrite <- (open_subst_trans _ z); [|intuition eauto].
+apply Term_subst_compat; intuition eauto.
+
+
+apply (Term_subst_compat (λ t)); intuition eauto.
+Qed.
+
+Lemma Term_to_STerm : forall t, Term t -> STerm t.
+Proof.
+induction 1; intuition eauto.
+constructor; intros r Hr.
+pick y.
+erewrite <- (open_subst_trans _ y); [|intuition eauto].
+
+Qed.
+ *)
+
+(*
 Fixpoint Term_normalize t (π : Term t) {struct t} : Term t.
 Proof.
 refine (
 match π in Term t return Term t with
 | Term_fvar x => Term_fvar x
 | Term_appl t u π ρ => Term_appl t u (Term_normalize t π) (Term_normalize u ρ)
-| Term_abst L t π => Term_abst (fv t) _ (fun x Hx => _)
+| Term_abst L t π => Term_abst (fv t) _ (fun x Hx => let (y, _) := fresh (VSet.add x L) in (Term_normalize _ (π _ _)))
 | Term_comp t u π ρ => Term_comp t u (Term_normalize t π) (Term_normalize u ρ)
 | Term_refl => Term_refl
 end).
-Abort.
-
+apply Term_abst_weak.
+*)
 
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
 | cons x σ => comp (fvar x) (comps σ)
 end.
+
+(*
+Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct t} : term.
+Proof.
+revert Ht.
+refine (
+match t return Term t -> term with
+| fvar x => fun H => fvar x @ fvar ω @ comps σ
+| bvar _ => fun H => False_rect _ _
+| appl t u => fun H =>
+  let (α, _) := fresh (VSet.union (fv u) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
+  (forcing σ ω t _) @ λ[ω] λ[α] (forcing (cons α σ) ω u _)
+| abst t => fun H =>
+  let (x, Hx) := fresh (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
+  λ[x] (forcing σ ω (t << fvar x) _)
+| comp t u =>  fun H => comp (forcing σ ω t _) (forcing σ ω u _)
+| refl =>  fun H => refl
+end%term
+).
++ clear - H; abstract inversion H.
++ clear - H; abstract (inversion H; intuition).
++ clear - H; abstract (inversion H; intuition).
++ clear forcing; abstract (inversion H; subst; simplify_vset; eapply Term_abst_weak; intuition eauto).
++ clear - H; abstract (inversion H; intuition).
++ clear - H; abstract (inversion H; intuition).
+Defined.
+
+clear - H; abstract (simplify_vset_hyps; intuition eauto).*)
 
 Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct Ht} : term.
 Proof.
@@ -360,7 +460,7 @@ induction π1; intros σ ω π2; cbn in *.
   intros; repeat destruct fresh; cbn; f_equal.
   erewrite H.
 
-
+*)
 
 
 
