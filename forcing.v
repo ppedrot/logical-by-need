@@ -300,11 +300,14 @@ Defined.
 
 Lemma Term_forcing : forall σ ω t Ht, Term (forcing σ ω t Ht).
 Proof.
-induction Ht; cbn in *; intuition eauto.
+intros σ ω t Ht; revert σ ω; induction Ht; intros σ ω; cbn in *; intuition eauto.
 + repeat constructor; induction σ; cbn; intuition eauto.
 + destruct fresh as [α Hα].
   repeat constructor; intuition eauto.
-  apply Term_close.
+  eapply (Term_close (λ[α] (forcing (cons α σ) ω u _)) ω), Term_close; auto.
++ destruct fresh as [x Hx].
+  apply Term_close; intuition.
+Qed.
 
 Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
   VSet.In (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
