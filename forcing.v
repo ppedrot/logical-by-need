@@ -72,6 +72,8 @@ Ltac simplify_vset_goal :=
 Ltac simplify_vset_hyps :=
   repeat match goal with [ H : ?P |- _ ] => progress (simplify_vset_hyp H) end.
 
+Ltac simplify_vset := simplify_vset_hyps; simplify_vset_goal.
+
 Inductive term :=
 | fvar : Var.t -> term
 | bvar : nat -> term
@@ -250,10 +252,21 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
   destruct eq_dec; intuition eauto.
 Qed.
 
-Lemma close_fv : forall t x n, ~ VSet.In x (fv (close t x n)).
+Lemma close_fv_from : forall t x y n, VSet.In x (fv (close t y n)) -> VSet.In x (fv t).
 Proof.
-induction t; intros; cbn in *; simplify_vset_hyps; simplify_vset_goal; intuition eauto.
+induction t; intros; cbn in *; simplify_vset; intuition eauto.
 destruct eq_dec; cbn in *; simplify_vset_hyps; intuition.
+Qed.
+
+Lemma close_not_fv : forall t x n, ~ VSet.In x (fv (close t x n)).
+Proof.
+induction t; intros; cbn in *; simplify_vset; intuition eauto.
+destruct eq_dec; cbn in *; simplify_vset_hyps; intuition.
+Qed.
+
+Lemma close_fv : forall t x y n, VSet.In x (fv (close t y n)) -> x <> y /\ VSet.In x (fv t).
+Proof.
+intros; split; [intros ->; eelim close_not_fv; eauto|eapply close_fv_from; eauto].
 Qed.
 
 Lemma open_close : forall t x (n : nat) r, Term r -> ~ VSet.In x (fv r) ->
@@ -274,6 +287,7 @@ rewrite open_close; cbn; simplify_vset_goal; intuition.
 rewrite Term_open_idem; intuition.
 apply Term_subst_compat; intuition.
 Qed.
+
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
@@ -310,7 +324,20 @@ intros σ ω t Ht; revert σ ω; induction Ht; intros σ ω; cbn in *; intuition
 Qed.
 
 Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
-  VSet.In (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
+  VSet.In x (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
+Proof.
+intros σ ω t Ht; revert σ ω.
+induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goal; intuition eauto.
++ right; right; induction σ; cbn in *; simplify_vset_hyps; simplify_vset; intuition eauto.
++ destruct fresh as [α Hα]; cbn in *; simplify_vset; destruct Hy as [Hy|Hy].
+  - refine ((fun IH => _) (IHHt1 _ _ _ Hy)); clear - IH.
+    simplify_vset; tauto.
+  -
+    do 2 (apply close_fv in Hy; destruct Hy as [? Hy]).
+    refine ((fun IH => _) (IHHt2 _ _ _ Hy)).
+    cbn in IH; simplify_vset; tauto.
+  
++ admit.
 
 (* Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))). *)
 
