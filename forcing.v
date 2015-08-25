@@ -310,23 +310,24 @@ Inductive OTerm n : term -> Type :=
 | OTerm_comp : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (comp t u)
 | OTerm_refl : OTerm n refl.
 
-Fixpoint freshen n L t :=
-match n with
-| 0 => t
-| S n =>
-  let (x, _) := fresh L in
-  open (freshen n (VSet.add x L) t) n (fvar x)
+Fixpoint opens t n r :=
+match t with
+| fvar x => fvar x
+| bvar m => match List.nth_error r m with None => bvar m | Some r => r end
+| (t0 @ u)%term => (opens t0 n r @ opens u n r)%term
+| (λ t0)%term => (λ (opens t0 (S n) r))%term
+| comp t0 u => comp (opens t0 n r) (opens u n r)
+| refl => refl
 end.
 
-Lemma Term_choice : forall t n x y,
-  Term (open t n (fvar x)) -> Term (open t n (fvar y)).
+Lemma Term_abst_weak : forall L t n x,
+  (forall y, ~ VSet.In y L -> Term (open t n (fvar y))) ->
+  ~ VSet.In x (fv t) -> Term (open t n (fvar x)).
 Proof.
-induction t; intros m x y Ht; cbn in *; try solve [inversion Ht; subst; intuition eauto].
-+ destruct Nat.eq_dec; inversion Ht; constructor.
-+ inversion Ht; subst.
-  gather L'; apply Term_abst with L'; intros z Hz.
-  unfold L' in *; simplify_vset.
-  
+intros; pick y.
+erewrite <- (open_subst_trans _ _ y); [|intuition eauto].
+apply Term_subst_compat; intuition eauto.
+Qed.
 
 Lemma OTerm_is_Term : forall n t, OTerm n t ->
   Term (freshen n VSet.empty t).
@@ -334,15 +335,6 @@ Proof.
 induction 1; cbn in *.
 + induction n; cbn in *; intuition eauto.
   destruct fresh; cbn in *.
-
-Lemma Term_abst_weak : forall L t x,
-  (forall y, ~ VSet.In y L -> Term (t << fvar y)) ->
-  ~ VSet.In x (fv t) -> Term (t << fvar x).
-Proof.
-intros; pick y.
-erewrite <- (open_subst_trans _ y); [|intuition eauto].
-apply Term_subst_compat; intuition eauto.
-Qed.
 
 (*
 Inductive STerm : term -> Type :=
