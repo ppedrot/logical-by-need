@@ -359,7 +359,11 @@ intros t n r Hr; revert t n; induction r as [|u r]; intros t n; cbn in *.
   clear - Hr; revert n; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
   destruct Nat.eq_dec; cbn in *.
   - subst; replace (m - m) with 0 by omega; cbn.
-    admit.
+    assert (Hu : Term u) by (inversion Hr; auto).
+    generalize (S m); clear - Hu.
+    induction Hu; intros n; cbn in *; try solve [f_equal; intuition eauto].
+admit.
+
   - 
 
 Qed.
