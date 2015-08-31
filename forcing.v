@@ -1,5 +1,5 @@
-Require MSets NArith Wellfounded.
-Require Import Program Setoid Morphisms BinNat Relations Omega.
+Require MSets.
+Require Import Omega.
 
 Module Type Fresh
   (Var : Orders.UsualOrderedType)
