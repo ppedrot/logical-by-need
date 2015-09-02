@@ -385,11 +385,7 @@ Qed.
 Lemma OTerm_Term : forall n t,
   OTerm n t -> Term (opens t n nil).
 Proof.
-intros n t Ht; induction Ht; cbn.
-+ constructor.
-+ constructor; intuition.
-+ econstructor.
-  intros 
+intros n t Ht; induction Ht; cbn; try solve [intuition eauto].
 
 *)
 
