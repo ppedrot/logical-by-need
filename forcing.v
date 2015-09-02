@@ -360,9 +360,8 @@ intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
   destruct lt_dec; [reflexivity|].
   destruct (n - m); reflexivity.
 + rewrite <- IHrs; [|inversion Hrs; assumption].
-
-
-  admit.
+  rewrite opens_open; [|inversion Hrs; assumption].
+  reflexivity.
 Qed.
 
 (*
