@@ -340,7 +340,8 @@ intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
 + clear; revert n; induction t; intros m; cbn; try solve [f_equal; intuition eauto].
   destruct lt_dec; [reflexivity|].
   destruct (n - m); reflexivity.
-+ 
++ rewrite <- IHrs; [|inversion Hrs; assumption].
+  admit.
 Qed.
 
 (*
