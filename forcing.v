@@ -334,7 +334,17 @@ match rs with
 | cons r rs => openl (open t n r) (S n) rs
 end.
 
-(* Lemma openr_openl : forall t n rs, openl t n rs = openr t n rs.
+Lemma opens_openl : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
+Proof.
+intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
++ clear; revert n; induction t; intros m; cbn; try solve [f_equal; intuition eauto].
+  destruct lt_dec; [reflexivity|].
+  destruct (n - m); reflexivity.
++ 
+Qed.
+
+(*
+Lemma openr_openl : forall t n rs, openl t n rs = openr t n rs.
 Proof.
 intros t n rs; revert t n; induction rs as [|r rs]; intros t n; cbn in *.
 + reflexivity.
@@ -346,6 +356,17 @@ rewrite <- IHrs.
   rewrite IHrs.
 Qed.
  *)
+
+Lemma Term_opens_idem : forall t n r,
+  Term t -> opens t n r = t.
+Proof.
+intros t n r Ht; revert n r.
+induction Ht; intros n r; cbn; try solve [f_equal; intuition eauto].
+f_equal; pick x.
+assert (Hrw : opens (t << fvar x) (S n) r = t << fvar x) by intuition eauto.
+rewrite <- (Term_open_idem t 0 (fvar x)).
+intuition eauto.
+Qed.
 
 Lemma opens_open : forall t n r,
   List.Forall Term r ->
