@@ -350,10 +350,8 @@ destruct lt_dec.
     { intros; symmetry; apply Term_open_idem.
       eapply List.Forall_forall in Hrs; [eassumption|].
       eapply List.nth_error_In; eassumption. }
-    { 
-
-
-
+    { intros; destruct Nat.eq_dec; [omega|trivial]. }
+Qed.
 
 Lemma opens_openl : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
 Proof.
