@@ -353,7 +353,7 @@ destruct lt_dec.
     { intros; destruct Nat.eq_dec; [omega|trivial]. }
 Qed.
 
-Lemma opens_openl : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
+Lemma opens_openr : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
 Proof.
 intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
 + clear; revert n; induction t; intros m; cbn; try solve [f_equal; intuition eauto].
@@ -364,59 +364,14 @@ intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
   reflexivity.
 Qed.
 
+(*
 Lemma Term_opens_idem : forall t n r,
   Term t -> opens t n r = t.
 Proof.
 intros t n r Ht; revert n r; induction Ht; intros n r; cbn; try solve [f_equal; intuition eauto].
 
 Qed.
-
-Lemma opens_open : forall t n r,
-  List.Forall Term r ->
-  opens t n r = openl t n r.
-Proof.
-intros t n r Hr; revert t n; induction r as [|u r]; intros t n; cbn in *.
-+ revert n; induction t; intros m; cbn in *; f_equal; intuition eauto.
-  destruct lt_dec; [reflexivity|].
-  match goal with [ |- context [ List.nth_error ?l ?n ] ] =>
-    replace (List.nth_error l n) with (@None term); intuition
-  end.
-  symmetry; apply List.nth_error_None; cbn; omega.
-+ rewrite <- IHr; cbn; [|inversion Hr; assumption].
-  clear - Hr; revert n; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
-  destruct Nat.eq_dec; cbn in *.
-  - destruct lt_dec; [omega|subst].
-    subst; replace (m - m) with 0 by omega; cbn.
-    assert (Hu : Term u) by (inversion Hr; auto).
-    generalize (S m); clear - Hu.
-    admit.
-  - destruct (lt_dec n m).
-    * replace (n - S m) with 0 by omega.
-      replace (n - m) with 0 by omega; cbn in *.
-      destruct lt_dec; [reflexivity|omega].
-    * destruct lt_dec; [omega|].
-      replace (n - m) with (S (n - S m)) by omega; reflexivity.
-Qed.
-
-Lemma opens_open : forall t n r u,
-  List.Forall Term r -> Term u ->
-  opens t (S n) r << u = opens t n (cons u r).
-Proof.
-intros t; generalize 0.
-induction t; intros m k r u Hr Hu; cbn in *; try solve [f_equal; intuition eauto].
-destruct (le_dec n k).
-+ replace (n - S k) with 0 by omega.
-  replace (n - k) with 0 by omega; cbn in *.
-  destruct r; cbn in *.
-
-remember (List.nth_error r (n - S k)) as l1.
-remember (List.nth_error (cons u r) (n - k)) as l2.
-destruct l1 as [r1|], l2 as [r2|].
-+ symmetry in Heql1; apply List.nth_error_Some in Heql1.
-
-Qed.
-
-
+*)
 
 Lemma Term_abst_weak : forall L t n x,
   (forall y, ~ VSet.In y L -> Term (open t n (fvar y))) ->
