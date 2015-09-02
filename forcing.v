@@ -313,7 +313,9 @@ Inductive OTerm n : term -> Type :=
 Fixpoint opens t n r :=
 match t with
 | fvar x => fvar x
-| bvar m => match List.nth_error r (m - n) with None => bvar m | Some r => r end
+| bvar m =>
+  let r := if lt_dec m n then None else List.nth_error r (m - n) in
+  match r with None => bvar m | Some r => r end
 | (t0 @ u)%term => (opens t0 n r @ opens u n r)%term
 | (λ t0)%term => (λ (opens t0 (S n) r))%term
 | comp t0 u => comp (opens t0 n r) (opens u n r)
@@ -351,6 +353,7 @@ Lemma opens_open : forall t n r,
 Proof.
 intros t n r Hr; revert t n; induction r as [|u r]; intros t n; cbn in *.
 + revert n; induction t; intros m; cbn in *; f_equal; intuition eauto.
+  destruct lt_dec; [reflexivity|].
   match goal with [ |- context [ List.nth_error ?l ?n ] ] =>
     replace (List.nth_error l n) with (@None term); intuition
   end.
@@ -358,15 +361,38 @@ intros t n r Hr; revert t n; induction r as [|u r]; intros t n; cbn in *.
 + rewrite <- IHr; cbn; [|inversion Hr; assumption].
   clear - Hr; revert n; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
   destruct Nat.eq_dec; cbn in *.
-  - subst; replace (m - m) with 0 by omega; cbn.
+  - destruct lt_dec; [omega|subst].
+    subst; replace (m - m) with 0 by omega; cbn.
     assert (Hu : Term u) by (inversion Hr; auto).
     generalize (S m); clear - Hu.
-    induction Hu; intros n; cbn in *; try solve [f_equal; intuition eauto].
-admit.
+    admit.
+  - destruct (lt_dec n m).
+    * replace (n - S m) with 0 by omega.
+      replace (n - m) with 0 by omega; cbn in *.
+      destruct lt_dec; [reflexivity|omega].
+    * destruct lt_dec; [omega|].
+      replace (n - m) with (S (n - S m)) by omega; reflexivity.
+Qed.
 
-  - 
+Lemma opens_open : forall t n r u,
+  List.Forall Term r -> Term u ->
+  opens t (S n) r << u = opens t n (cons u r).
+Proof.
+intros t; generalize 0.
+induction t; intros m k r u Hr Hu; cbn in *; try solve [f_equal; intuition eauto].
+destruct (le_dec n k).
++ replace (n - S k) with 0 by omega.
+  replace (n - k) with 0 by omega; cbn in *.
+  destruct r; cbn in *.
+
+remember (List.nth_error r (n - S k)) as l1.
+remember (List.nth_error (cons u r) (n - k)) as l2.
+destruct l1 as [r1|], l2 as [r2|].
++ symmetry in Heql1; apply List.nth_error_Some in Heql1.
 
 Qed.
+
+
 
 Lemma Term_abst_weak : forall L t n x,
   (forall y, ~ VSet.In y L -> Term (open t n (fvar y))) ->
@@ -377,12 +403,16 @@ erewrite <- (open_subst_trans _ _ y); [|intuition eauto].
 apply Term_subst_compat; intuition eauto.
 Qed.
 
-Lemma OTerm_is_Term : forall n t, OTerm n t ->
-  Term (opens n VSet.empty t).
+Lemma OTerm_Term : forall n t,
+  OTerm n t -> Term (opens t n nil).
 Proof.
-induction 1; cbn in *.
-+ induction n; cbn in *; intuition eauto.
-  destruct fresh; cbn in *.
+intros n t Ht; induction Ht; cbn.
++ constructor.
++ constructor; intuition.
++ econstructor.
+  intros 
+
+*)
 
 (*
 Inductive STerm : term -> Type :=
@@ -447,34 +477,6 @@ match σ with
 | nil => refl
 | cons x σ => comp (fvar x) (comps σ)
 end.
-
-(*
-Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct t} : term.
-Proof.
-revert Ht.
-refine (
-match t return Term t -> term with
-| fvar x => fun H => fvar x @ fvar ω @ comps σ
-| bvar _ => fun H => False_rect _ _
-| appl t u => fun H =>
-  let (α, _) := fresh (VSet.union (fv u) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
-  (forcing σ ω t _) @ λ[ω] λ[α] (forcing (cons α σ) ω u _)
-| abst t => fun H =>
-  let (x, Hx) := fresh (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
-  λ[x] (forcing σ ω (t << fvar x) _)
-| comp t u =>  fun H => comp (forcing σ ω t _) (forcing σ ω u _)
-| refl =>  fun H => refl
-end%term
-).
-+ clear - H; abstract inversion H.
-+ clear - H; abstract (inversion H; intuition).
-+ clear - H; abstract (inversion H; intuition).
-+ clear forcing; abstract (inversion H; subst; simplify_vset; eapply Term_abst_weak; intuition eauto).
-+ clear - H; abstract (inversion H; intuition).
-+ clear - H; abstract (inversion H; intuition).
-Defined.
-
-clear - H; abstract (simplify_vset_hyps; intuition eauto).*)
 
 Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct Ht} : term.
 Proof.
