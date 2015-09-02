@@ -334,6 +334,27 @@ match rs with
 | cons r rs => openl (open t n r) (S n) rs
 end.
 
+Lemma opens_open : forall t n r rs,
+  List.Forall Term rs ->
+  opens t n (cons r rs) = open (opens t (S n) rs) n r.
+Proof.
+induction t; intros m r rs Hrs; cbn in *; try solve [f_equal; intuition eauto].
+destruct lt_dec.
++ destruct lt_dec; [|exfalso; omega].
+  cbn; destruct Nat.eq_dec; [exfalso; omega|trivial].
++ destruct lt_dec.
+  - replace (n - m) with 0 by omega; cbn.
+    destruct Nat.eq_dec; [reflexivity|omega].
+  - replace (n - m) with (S (n - S m)) by omega; cbn in *.
+    case_eq (List.nth_error rs (n - S m)); cbn.
+    { intros; symmetry; apply Term_open_idem.
+      eapply List.Forall_forall in Hrs; [eassumption|].
+      eapply List.nth_error_In; eassumption. }
+    { 
+
+
+
+
 Lemma opens_openl : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
 Proof.
 intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
@@ -341,6 +362,8 @@ intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
   destruct lt_dec; [reflexivity|].
   destruct (n - m); reflexivity.
 + rewrite <- IHrs; [|inversion Hrs; assumption].
+
+
   admit.
 Qed.
 
