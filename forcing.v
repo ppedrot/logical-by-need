@@ -384,6 +384,7 @@ f_equal; pick x; symmetry; eapply (opens_inj _ 0); [omega|symmetry].
 intuition eauto.
 Qed.
 
+(*
 Lemma opens_app : forall t n rs1 rs2,
   List.Forall Term rs1 ->
   opens (opens t (n + List.length rs1) rs2) n rs1 = opens t n (app rs1 rs2).
@@ -398,9 +399,9 @@ induction t; intros m rs1 rs2 Hrs1; cbn in *; try solve [f_equal; intuition eaut
     case_eq (List.nth_error rs2 (n - m - length rs1)).
     { intros r Hr; apply Term_opens_idem; [eapply List.nth_error_In, List.Forall_forall in Hr|].
 Qed.
+*)
 
-
-Lemma opens_open_r : forall t n r rs,
+(* Lemma opens_open_r : forall t n r rs,
   List.Forall Term rs ->
   opens t n (app rs (cons r nil)) = open (opens t (S n) rs) n r.
 Proof.
@@ -418,8 +419,8 @@ destruct lt_dec.
       eapply List.nth_error_In; eassumption. }
     { intros; destruct Nat.eq_dec; [omega|trivial]. }
 Qed.
+ *)
 
-(*
 Lemma opens_open_comm : forall t n m r rs,
   n < m -> List.Forall Term rs -> Term r ->
   open (opens t m rs) n r = opens (open t n r) m rs.
@@ -427,22 +428,15 @@ Proof.
 induction t; intros m m' r rs Hm Hrs Hr; cbn in *; try solve [f_equal; intuition eauto].
 + destruct lt_dec; cbn in *.
   - destruct Nat.eq_dec; cbn; [|].
-    { admit. }
+    { symmetry; apply Term_opens_idem; assumption. }
     { destruct lt_dec; [reflexivity|omega]. }
   - destruct Nat.eq_dec; cbn in *; [omega|].
     destruct lt_dec; [omega|].
-    case_eq (List.nth_error rs (n - m')); cbn; intros.
-    
+    case_eq (List.nth_error rs (n - m')); cbn.
+    { intros t Ht; apply Term_open_idem; eapply List.nth_error_In, List.Forall_forall in Ht; eassumption. }
+    { intros _; destruct Nat.eq_dec; [omega|reflexivity]. }
++ f_equal; apply IHt; try (assumption || omega).
 Qed.
-*)
-(*
-Lemma Term_opens_idem : forall t n r,
-  Term t -> opens t n r = t.
-Proof.
-intros t n r Ht; revert n r; induction Ht; intros n r; cbn; try solve [f_equal; intuition eauto].
-
-Qed.
-*)
 
 Lemma Term_abst_weak : forall L t n x,
   (forall y, ~ VSet.In y L -> Term (open t n (fvar y))) ->
@@ -460,7 +454,7 @@ Proof.
 intros n t r Hr Ht; revert r Hr.
 induction Ht; intros r Hr; cbn; try solve [intuition eauto].
 gather L; apply Term_abst with L; intros x Hx.
-rewrite opens_open.
+rewrite opens_open_l.
 
 *)
 
