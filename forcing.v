@@ -384,15 +384,6 @@ f_equal; pick x; symmetry; eapply (opens_inj _ 0); [omega|symmetry].
 intuition eauto.
 Qed.
 
-Lemma Term_opens_idem : forall t n r,
-  Term t -> List.Forall Term r -> opens t n r = t.
-Proof.
-intros t n r Ht Hr; rewrite opens_openr; [|assumption].
-clear Hr; revert n; induction r; intros n; cbn in *.
-+ reflexivity.
-+ rewrite IHr; apply Term_open_idem; assumption.
-Qed.
-
 Lemma opens_app : forall t n rs1 rs2,
   List.Forall Term rs1 ->
   opens (opens t (n + List.length rs1) rs2) n rs1 = opens t n (app rs1 rs2).
