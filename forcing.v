@@ -469,6 +469,13 @@ destruct lt_dec; [reflexivity|].
 destruct (n - m); cbn; reflexivity.
 Qed.
 
+Lemma is_Term_OTerm : forall t n, is_Term t n = true -> OTerm n t.
+Proof.
+induction t; intros m Ht; cbn in *;
+try apply Bool.andb_true_iff in Ht;
+try solve [constructor; intuition eauto].
+
+
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
