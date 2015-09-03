@@ -92,7 +92,7 @@ intros σ ω t Ht; revert σ ω.
 induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goal; intuition eauto.
 + right; right; induction σ; cbn in *; simplify_vset_hyps; simplify_vset; intuition eauto.
 + destruct fresh as [α Hα]; cbn in *; simplify_vset; destruct Hy as [Hy|Hy].
-  - refine ((fun IH => _) (IHHt1 _ _ _ Hy)); clear - IH.
+  - apply IHHt1 in Hy; clear - Hy.
     simplify_vset; tauto.
   -
     do 2 (apply close_fv in Hy; destruct Hy as [? Hy]).
