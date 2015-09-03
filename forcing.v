@@ -449,12 +449,14 @@ Qed.
 
 Lemma OTerm_Term : forall n t (r : list Var.t),
   List.length r = n ->
-  OTerm n t -> Term (opens t n (List.map fvar r)).
+  OTerm n t -> Term (opens t 0 (List.map fvar r)).
 Proof.
 intros n t r Hr Ht; revert r Hr.
 induction Ht; intros r Hr; cbn; try solve [intuition eauto].
 gather L; apply Term_abst with L; intros x Hx.
-rewrite opens_open_l.
+assert (HT : List.Forall Term (List.map fvar r)).
+{ clear; induction r; cbn in *; constructor; intuition eauto. }
+rewrite opens_open_comm; try (intuition || omega).
 
 *)
 
