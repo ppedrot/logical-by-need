@@ -469,64 +469,6 @@ destruct lt_dec; [reflexivity|].
 destruct (n - m); cbn; reflexivity.
 Qed.
 
-(*
-Inductive STerm : term -> Type :=
-| STerm_fvar : forall x, STerm (fvar x)
-| STerm_appl : forall t u, STerm t -> STerm u -> STerm (appl t u)
-| STerm_abst : forall t,
-  (forall x, ~ VSet.In x (fv t) -> STerm (t << fvar x)) ->
-  STerm (abst t)
-| STerm_comp : forall t u, STerm t -> STerm u -> STerm (comp t u)
-| STerm_refl : STerm refl
-.
-
-Hint Constructors STerm.
-
-Lemma Term_to_STerm_aux : forall t, Term t -> STerm t * (forall x y, Term t -> STerm [t | x := fvar y]).
-Proof.
-induction 1; cbn in *; intuition eauto.
-+ destruct eq_dec; intuition.
-+ constructor; intros x Hx; pick y.
-  erewrite <- (open_subst_trans _ y); [|intuition eauto].
-  repeat match goal with [ H : ?P |- _ ] => apply H end.
-+ constructor; intros z Hz.
-  rewrite <- subst_comm; intuition eauto; cbn in *; simplify_vset.
-apply X.
-admit.
-admit.
-  apply X; intuition eauto.
-admit.
-  erewrite <- (open_subst_trans _ z); [|intuition eauto].
-apply Term_subst_compat; intuition eauto.
-
-
-apply (Term_subst_compat (λ t)); intuition eauto.
-Qed.
-
-Lemma Term_to_STerm : forall t, Term t -> STerm t.
-Proof.
-induction 1; intuition eauto.
-constructor; intros r Hr.
-pick y.
-erewrite <- (open_subst_trans _ y); [|intuition eauto].
-
-Qed.
- *)
-
-(*
-Fixpoint Term_normalize t (π : Term t) {struct t} : Term t.
-Proof.
-refine (
-match π in Term t return Term t with
-| Term_fvar x => Term_fvar x
-| Term_appl t u π ρ => Term_appl t u (Term_normalize t π) (Term_normalize u ρ)
-| Term_abst L t π => Term_abst (fv t) _ (fun x Hx => let (y, _) := fresh (VSet.add x L) in (Term_normalize _ (π _ _)))
-| Term_comp t u π ρ => Term_comp t u (Term_normalize t π) (Term_normalize u ρ)
-| Term_refl => Term_refl
-end).
-apply Term_abst_weak.
-*)
-
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
