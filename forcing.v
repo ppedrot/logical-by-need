@@ -486,7 +486,6 @@ constructor; apply leb_complete in Ht.
 omega.
 Qed.
 
-
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
 | nil => refl
