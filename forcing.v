@@ -334,9 +334,65 @@ match rs with
 | cons r rs => openl (open t n r) (S n) rs
 end.
 
-Lemma opens_open : forall t n r rs,
+Lemma opens_open_l : forall t n r rs,
   List.Forall Term rs ->
   opens t n (cons r rs) = open (opens t (S n) rs) n r.
+Proof.
+induction t; intros m r rs Hrs; cbn in *; try solve [f_equal; intuition eauto].
+destruct lt_dec.
++ destruct lt_dec; [|exfalso; omega].
+  cbn; destruct Nat.eq_dec; [exfalso; omega|trivial].
++ destruct lt_dec.
+  - replace (n - m) with 0 by omega; cbn.
+    destruct Nat.eq_dec; [reflexivity|omega].
+  - replace (n - m) with (S (n - S m)) by omega; cbn in *.
+    case_eq (List.nth_error rs (n - S m)); cbn.
+    { intros; symmetry; apply Term_open_idem.
+      eapply List.Forall_forall in Hrs; [eassumption|].
+      eapply List.nth_error_In; eassumption. }
+    { intros; destruct Nat.eq_dec; [omega|trivial]. }
+Qed.
+
+
+Lemma opens_openr : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
+Proof.
+intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
++ clear; revert n; induction t; intros m; cbn; try solve [f_equal; intuition eauto].
+  destruct lt_dec; [reflexivity|].
+  destruct (n - m); reflexivity.
++ rewrite <- IHrs; [|inversion Hrs; assumption].
+  rewrite opens_open_l; [|inversion Hrs; assumption].
+  reflexivity.
+Qed.
+
+Lemma Term_opens_idem : forall t n r,
+  Term t -> List.Forall Term r -> opens t n r = t.
+Proof.
+intros t n r Ht Hr; rewrite opens_openr; [|assumption].
+clear Hr; revert n; induction r; intros n; cbn in *.
++ reflexivity.
++ rewrite IHr; apply Term_open_idem; assumption.
+Qed.
+
+Lemma opens_app : forall t n rs1 rs2,
+  List.Forall Term rs1 ->
+  opens (opens t (n + List.length rs1) rs2) n rs1 = opens t n (app rs1 rs2).
+Proof.
+induction t; intros m rs1 rs2 Hrs1; cbn in *; try solve [f_equal; intuition eauto].
++ destruct lt_dec; cbn in *.
+  - destruct lt_dec; [reflexivity|].
+    rewrite List.nth_error_app1; [reflexivity|omega].
+  - destruct lt_dec; [omega|].
+    rewrite List.nth_error_app2; [|omega].
+    replace (n - (m + length rs1)) with (n - m - length rs1) by omega.
+    case_eq (List.nth_error rs2 (n - m - length rs1)).
+    { intros r Hr.
+Qed.
+
+
+Lemma opens_open_r : forall t n r rs,
+  List.Forall Term rs ->
+  opens t n (app rs (cons r nil)) = open (opens t (S n) rs) n r.
 Proof.
 induction t; intros m r rs Hrs; cbn in *; try solve [f_equal; intuition eauto].
 destruct lt_dec.
@@ -369,18 +425,6 @@ induction t; intros m m' r rs Hm Hrs Hr; cbn in *; try solve [f_equal; intuition
     
 Qed.
 *)
-
-Lemma opens_openr : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
-Proof.
-intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
-+ clear; revert n; induction t; intros m; cbn; try solve [f_equal; intuition eauto].
-  destruct lt_dec; [reflexivity|].
-  destruct (n - m); reflexivity.
-+ rewrite <- IHrs; [|inversion Hrs; assumption].
-  rewrite opens_open; [|inversion Hrs; assumption].
-  reflexivity.
-Qed.
-
 (*
 Lemma Term_opens_idem : forall t n r,
   Term t -> opens t n r = t.
@@ -400,10 +444,11 @@ apply Term_subst_compat; intuition eauto.
 Qed.
 
 Lemma OTerm_Term : forall n t (r : list Var.t),
+  List.length r = n ->
   OTerm n t -> Term (opens t n (List.map fvar r)).
 Proof.
-intros n t r Ht; revert r.
-induction Ht; intros r; cbn; try solve [intuition eauto].
+intros n t r Hr Ht; revert r Hr.
+induction Ht; intros r Hr; cbn; try solve [intuition eauto].
 gather L; apply Term_abst with L; intros x Hx.
 rewrite opens_open.
 
