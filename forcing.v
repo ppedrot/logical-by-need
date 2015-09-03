@@ -55,36 +55,6 @@ intros σ ω t Ht; revert σ ω; induction Ht; intros σ ω; cbn in *; intuition
   apply Term_close; intuition.
 Qed.
 
-Local Ltac dTerm π :=
-refine (match π with
-| Term_fvar x => _
-| Term_appl t u πt2 πu2 => _
-| Term_abst L t πt2 => _
-| Term_comp t u πt2 πu2 => _
-| Term_refl => _
-end); unfold IDProp; trivial.
-
-Local Ltac pop := match goal with [ H : ?P |- _ ] => revert H end.
-
-(*
-Lemma forcing_irrelevant : forall σ ω t π1 π2,
-  forcing σ ω t π1 = forcing σ ω t π2.
-Proof.
-intros σ ω t π1; revert σ ω.
-induction π1; intros σ ω π2; cbn in *.
-+ dTerm π2.
-+ move π2 before u; do 6 pop; dTerm π2; cbn.
-  intros; destruct fresh; cbn.
-  erewrite IHπ1_1, IHπ1_2; reflexivity.
-+ move π2 before t; do 4 pop; dTerm π2; cbn.
-  intros; repeat destruct fresh; cbn; f_equal.
-  erewrite close_subst.
-  simplify_vset_hyps.
-  erewrite H.
-  
-
-*)
-
 Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
   VSet.In x (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
 Proof.
