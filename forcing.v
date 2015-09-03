@@ -305,6 +305,7 @@ end.
 
 Inductive OTerm n : term -> Type :=
 | OTerm_fvar : forall x : Var.t, OTerm n (fvar x)
+| OTerm_bvar : forall m, m < n -> OTerm n (bvar m)
 | OTerm_appl : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (t @ u)
 | OTerm_abst : forall (t : term), (OTerm (S n) t) -> OTerm n (λ t)
 | OTerm_comp : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (comp t u)
@@ -453,11 +454,17 @@ Lemma OTerm_Term_n : forall n t (r : list Var.t),
 Proof.
 intros n t r Hr Ht; revert r Hr.
 induction Ht; intros r Hr; cbn; try solve [intuition eauto].
-gather L; apply Term_abst with L; intros x Hx.
-assert (HT : List.Forall Term (List.map fvar r)).
-{ clear; induction r; cbn in *; constructor; intuition eauto. }
-rewrite <- opens_open_l; [|intuition].
-apply (IHHt (cons x r)); cbn; congruence.
++ replace (m - 0) with m by omega.
+  case_eq (List.nth_error (List.map fvar r) m); cbn.
+  - intros t Ht; apply List.nth_error_In in Ht.
+    clear - Ht; induction r; cbn in *; intuition.
+    subst t; intuition.
+  - intros H; apply List.nth_error_None in H; rewrite List.map_length in H; omega.
++ gather L; apply Term_abst with L; intros x Hx.
+  assert (HT : List.Forall Term (List.map fvar r)).
+  { clear; induction r; cbn in *; constructor; intuition eauto. }
+  rewrite <- opens_open_l; [|intuition].
+  apply (IHHt (cons x r)); cbn; congruence.
 Qed.
 
 Lemma OTerm_term_0 : forall t, OTerm 0 t -> Term t.
@@ -474,6 +481,9 @@ Proof.
 induction t; intros m Ht; cbn in *;
 try apply Bool.andb_true_iff in Ht;
 try solve [constructor; intuition eauto].
+destruct m; [congruence|].
+
+Qed.
 
 
 Fixpoint comps (σ : list Var.t) : term :=
