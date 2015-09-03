@@ -467,7 +467,7 @@ induction Ht; intros r Hr; cbn; try solve [intuition eauto].
   apply (IHHt (cons x r)); cbn; congruence.
 Qed.
 
-Lemma OTerm_term_0 : forall t, OTerm 0 t -> Term t.
+Lemma OTerm_Term_0 : forall t, OTerm 0 t -> Term t.
 Proof.
 intros t Ht.
 replace t with (opens t 0 nil); [apply (OTerm_Term_n 0 _ nil); intuition|].
@@ -485,6 +485,20 @@ destruct m; [congruence|].
 constructor; apply leb_complete in Ht.
 omega.
 Qed.
+
+Lemma OTerm_is_Term : forall t n, OTerm n t -> is_Term t n = true.
+Proof.
+intros t n Ht; induction Ht; cbn in *;
+try apply Bool.andb_true_iff;
+try solve [intuition eauto].
+destruct n; [omega|].
+apply leb_correct; omega.
+Qed.
+
+Lemma Term_OTerm_0 : forall t, Term t -> OTerm 0 t.
+Proof.
+intros t Ht; induction Ht.
+
 
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
