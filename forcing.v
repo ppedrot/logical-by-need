@@ -76,4 +76,13 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
 + apply IHHt2 in H; simplify_vset; intuition eauto.
 Qed.
 
+Lemma forcing_subst : forall t x r σ ω Ht Hr Hs,
+  red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << (fvar x)) Ht | x := forcing σ ω r Hr].
+
+
+Lemma forcing_red : forall t r σ ω Ht Hr,
+  red t r -> red (forcing σ ω t Ht) (forcing σ ω r Hr).
+Proof.
+
+
 End Spec.
