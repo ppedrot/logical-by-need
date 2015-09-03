@@ -536,7 +536,7 @@ induction Ht; intros r Hr; cbn; try solve [intuition eauto].
     destruct t; try (exfalso; destruct H; congruence).
     constructor.
   - intros H; apply List.nth_error_None in H; rewrite List.map_length in H; omega.
-+ gather L; apply Term_abst with L; intros x Hx.
++ apply STerm_abst; intros x Hx.
   assert (HT : List.Forall Term (List.map fvar r)).
   { clear; induction r; cbn in *; constructor; intuition eauto. }
   rewrite <- opens_open_l; [|intuition].
