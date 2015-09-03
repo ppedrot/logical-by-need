@@ -482,7 +482,8 @@ induction t; intros m Ht; cbn in *;
 try apply Bool.andb_true_iff in Ht;
 try solve [constructor; intuition eauto].
 destruct m; [congruence|].
-
+constructor; apply leb_complete in Ht.
+omega.
 Qed.
 
 
