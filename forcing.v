@@ -353,6 +353,23 @@ destruct lt_dec.
     { intros; destruct Nat.eq_dec; [omega|trivial]. }
 Qed.
 
+(*
+Lemma opens_open_comm : forall t n m r rs,
+  n < m -> List.Forall Term rs -> Term r ->
+  open (opens t m rs) n r = opens (open t n r) m rs.
+Proof.
+induction t; intros m m' r rs Hm Hrs Hr; cbn in *; try solve [f_equal; intuition eauto].
++ destruct lt_dec; cbn in *.
+  - destruct Nat.eq_dec; cbn; [|].
+    { admit. }
+    { destruct lt_dec; [reflexivity|omega]. }
+  - destruct Nat.eq_dec; cbn in *; [omega|].
+    destruct lt_dec; [omega|].
+    case_eq (List.nth_error rs (n - m')); cbn; intros.
+    
+Qed.
+*)
+
 Lemma opens_openr : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
 Proof.
 intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
@@ -382,10 +399,13 @@ erewrite <- (open_subst_trans _ _ y); [|intuition eauto].
 apply Term_subst_compat; intuition eauto.
 Qed.
 
-Lemma OTerm_Term : forall n t,
-  OTerm n t -> Term (opens t n nil).
+Lemma OTerm_Term : forall n t (r : list Var.t),
+  OTerm n t -> Term (opens t n (List.map fvar r)).
 Proof.
-intros n t Ht; induction Ht; cbn; try solve [intuition eauto].
+intros n t r Ht; revert r.
+induction Ht; intros r; cbn; try solve [intuition eauto].
+gather L; apply Term_abst with L; intros x Hx.
+rewrite opens_open.
 
 *)
 
