@@ -365,6 +365,25 @@ intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
   reflexivity.
 Qed.
 
+Lemma opens_inj : forall t n1 n2 r rs, n1 < n2 ->
+  open t n1 r = opens (open t n1 r) n2 rs -> t = opens t n2 rs.
+Proof.
+induction t; intros n1 n2 r rs Hn Hrw; cbn in *; try solve [f_equal; try injection Hrw; intuition eauto].
++ destruct lt_dec; cbn in *; [reflexivity|].
+  destruct Nat.eq_dec; [omega|].
+  cbn in *; destruct lt_dec; [omega|assumption].
++ injection Hrw; clear Hrw; intros Hrw; f_equal.
+  eapply IHt; [|eassumption]; omega.
+Qed.
+
+Lemma Term_opens_idem : forall t n r,
+  Term t -> opens t n r = t.
+Proof.
+intros t n r Ht; revert n r; induction Ht; intros n r; cbn in *; try solve [f_equal; intuition eauto].
+f_equal; pick x; symmetry; eapply (opens_inj _ 0); [omega|symmetry].
+intuition eauto.
+Qed.
+
 Lemma Term_opens_idem : forall t n r,
   Term t -> List.Forall Term r -> opens t n r = t.
 Proof.
@@ -386,7 +405,7 @@ induction t; intros m rs1 rs2 Hrs1; cbn in *; try solve [f_equal; intuition eaut
     rewrite List.nth_error_app2; [|omega].
     replace (n - (m + length rs1)) with (n - m - length rs1) by omega.
     case_eq (List.nth_error rs2 (n - m - length rs1)).
-    { intros r Hr.
+    { intros r Hr; apply Term_opens_idem; [eapply List.nth_error_In, List.Forall_forall in Hr|].
 Qed.
 
 
