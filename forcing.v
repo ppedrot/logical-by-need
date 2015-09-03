@@ -500,8 +500,15 @@ Proof.
 intros t Ht; apply is_Term_OTerm; induction Ht; cbn in *;
 try apply Bool.andb_true_iff; intuition eauto.
 pick x; assert (Hx : is_Term (t << fvar x) 0 = true) by intuition eauto.
-clear - Hx.
-
+revert Hx; clear.
+generalize 0; induction t; intros m Ht; cbn in *;
+try apply Bool.andb_true_iff; try apply Bool.andb_true_iff in Ht;
+first [reflexivity|intuition|idtac].
+destruct Nat.eq_dec; cbn in *.
++ apply leb_correct; omega.
++ destruct m; [discriminate|].
+  apply leb_correct; apply leb_complete in Ht; omega.
+Qed.
 
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
