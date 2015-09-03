@@ -456,9 +456,9 @@ induction Ht; intros r Hr; cbn; try solve [intuition eauto].
 gather L; apply Term_abst with L; intros x Hx.
 assert (HT : List.Forall Term (List.map fvar r)).
 { clear; induction r; cbn in *; constructor; intuition eauto. }
-rewrite opens_open_comm; try (intuition || omega).
-
-*)
+rewrite <- opens_open_l; [|intuition].
+apply (IHHt (cons x r)); cbn; congruence.
+Qed.
 
 (*
 Inductive STerm : term -> Type :=
