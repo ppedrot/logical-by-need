@@ -497,7 +497,10 @@ Qed.
 
 Lemma Term_OTerm_0 : forall t, Term t -> OTerm 0 t.
 Proof.
-intros t Ht; induction Ht.
+intros t Ht; apply is_Term_OTerm; induction Ht; cbn in *;
+try apply Bool.andb_true_iff; intuition eauto.
+pick x; assert (Hx : is_Term (t << fvar x) 0 = true) by intuition eauto.
+clear - Hx.
 
 
 Fixpoint comps (σ : list Var.t) : term :=
