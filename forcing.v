@@ -26,19 +26,19 @@ match σ with
 | cons x σ => comp (fvar x) (comps σ)
 end.
 
-Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : Term t) {struct Ht} : term.
+Fixpoint forcing (σ : list Var.t) (ω : Var.t) t (Ht : STerm t) {struct Ht} : term.
 Proof.
 refine (
-match Ht in Term t return term with
-| Term_fvar x => fvar x @ fvar ω @ comps σ
-| Term_appl t u Ht Hu =>
+match Ht in STerm t return term with
+| STerm_fvar x => fvar x @ fvar ω @ comps σ
+| STerm_appl t u Ht Hu =>
   let (α, _) := fresh (VSet.union (fv u) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
   (forcing σ ω t Ht) @ λ[ω] λ[α] (forcing (cons α σ) ω u Hu)
-| Term_abst L t Ht =>
-  let (x, Hx) := fresh (VSet.union L (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
+| STerm_abst t Ht =>
+  let (x, Hx) := fresh (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
   λ[x] (forcing σ ω _ (Ht x _))
-| Term_comp t u Ht Hu => comp (forcing σ ω t Ht) (forcing σ ω u Hu)
-| Term_refl => refl
+| STerm_comp t u Ht Hu => comp (forcing σ ω t Ht) (forcing σ ω u Hu)
+| STerm_refl => refl
 end%term
 ).
 clear - Hx; abstract (simplify_vset_hyps; intuition eauto).
