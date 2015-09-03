@@ -85,8 +85,6 @@ induction π1; intros σ ω π2; cbn in *.
 
 *)
 
-
-(*
 Lemma forcing_fv : forall σ ω t Ht x, VSet.In x (fv (forcing σ ω t Ht)) ->
   VSet.In x (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))).
 Proof.
@@ -102,6 +100,7 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
     cbn in IH; simplify_vset; tauto.
 + destruct fresh as [x Hx]; cbn in *; simplify_vset.
   apply close_fv in Hy; destruct Hy as [? Hy].
+  apply H in Hy; simplify_vset; intuition.
   
 
 (* Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))). *)

@@ -552,4 +552,19 @@ destruct lt_dec; [reflexivity|].
 destruct (n - m); cbn; reflexivity.
 Qed.
 
+Module FV.
+
+Lemma fv_open : forall x t n r,
+  VSet.In x (fv (open t n r)) -> VSet.In x (fv t) \/ VSet.In x (fv r).
+Proof.
+intros x t; revert x; induction t; intros; cbn in *; simplify_vset; intuition eauto.
++ destruct Nat.eq_dec; cbn in *; simplify_vset; intuition.
++ apply IHt1 in H0; intuition eauto.
++ apply IHt2 in H0; intuition eauto.
++ apply IHt1 in H0; intuition eauto.
++ apply IHt2 in H0; intuition eauto.
+Qed.
+
+End FV.
+
 End Spec.
