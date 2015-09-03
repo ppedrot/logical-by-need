@@ -106,26 +106,4 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
 + apply IHHt2 in H; simplify_vset; intuition eauto.
 Qed.
 
-(* Definition lift1 x α t := subst t x (λ λ (fvar x @ bvar 1 @ (comp (bvar 0) α))). *)
-
-(* Fixpoint lift σ α t {struct t} := VSet.fold (fun x t => lift1 x α t) σ t. *)
-
-Fixpoint forcing (σ : list nat) (ω : Var.t) t {struct t} : term :=
-match t with
-| bvar n => bvar n @ fvar ω @ refl
-| fvar x => fvar x
-| appl t u => appl (forcing σ ω t) (λ[ω] λ (forcing (cons 0 σ) ω u))
-| abst t => abst (forcing (List.map S σ) ω t)
-| comp t u => comp (forcing σ ω t) (forcing σ ω u)
-| refl => refl
-end.
-
-Definition is_pure t := match t with
-| refl | comp _ _ => False
-| _ => True
-end.
-
-Lemma forcing_fv
-*)
-
 End Spec.
