@@ -447,7 +447,7 @@ erewrite <- (open_subst_trans _ _ y); [|intuition eauto].
 apply Term_subst_compat; intuition eauto.
 Qed.
 
-Lemma OTerm_Term : forall n t (r : list Var.t),
+Lemma OTerm_Term_n : forall n t (r : list Var.t),
   List.length r = n ->
   OTerm n t -> Term (opens t 0 (List.map fvar r)).
 Proof.
@@ -458,6 +458,15 @@ assert (HT : List.Forall Term (List.map fvar r)).
 { clear; induction r; cbn in *; constructor; intuition eauto. }
 rewrite <- opens_open_l; [|intuition].
 apply (IHHt (cons x r)); cbn; congruence.
+Qed.
+
+Lemma OTerm_term_0 : forall t, OTerm 0 t -> Term t.
+Proof.
+intros t Ht.
+replace t with (opens t 0 nil); [apply (OTerm_Term_n 0 _ nil); intuition|].
+clear; generalize 0; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
+destruct lt_dec; [reflexivity|].
+destruct (n - m); cbn; reflexivity.
 Qed.
 
 (*
