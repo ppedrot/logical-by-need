@@ -541,7 +541,15 @@ induction Ht; intros r Hr; cbn; try solve [intuition eauto].
   { clear; induction r; cbn in *; constructor; intuition eauto. }
   rewrite <- opens_open_l; [|intuition].
   apply (IHHt (cons x r)); cbn; congruence.
+Qed.
 
-
+Lemma OTerm_STerm_0 : forall t, OTerm 0 t -> STerm t.
+Proof.
+intros t Ht.
+replace t with (opens t 0 nil); [apply (OTerm_STerm_n 0 _ nil); intuition|].
+clear; generalize 0; induction t; intros m; cbn in *; try solve [f_equal; intuition eauto].
+destruct lt_dec; [reflexivity|].
+destruct (n - m); cbn; reflexivity.
+Qed.
 
 End Spec.
