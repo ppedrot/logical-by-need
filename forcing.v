@@ -98,7 +98,7 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
     do 2 (apply close_fv in Hy; destruct Hy as [? Hy]).
     apply IHHt2 in Hy.
     cbn in Hy; simplify_vset; tauto.
-+ destruct fresh as [x Hx]; cbn in *; simplify_vset.
++ destruct fresh as [x Hx]; cbn in *.
   apply close_fv in Hy; destruct Hy as [? Hy].
   apply H in Hy; simplify_vset; intuition.
   apply FV.fv_open in H2; cbn in *; simplify_vset; intuition.
