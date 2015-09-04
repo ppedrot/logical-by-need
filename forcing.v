@@ -1,4 +1,4 @@
-Require Import Omega.
+Require Import Omega Relations.
 Require Import vars lambda typing.
 
 Fixpoint comps (σ : list Var.t) : term :=
@@ -34,13 +34,13 @@ refine (match v with
 | STerm_refl => _
 end); unfold IDProp; trivial.
 
-Lemma forcing_fvar : forall σ ω x Ht,
+Lemma red_forcing_fvar : forall σ ω x Ht,
   forcing σ ω (fvar x) Ht = (fvar x @ fvar ω @ comps σ)%term.
 Proof.
 intros; caseSTerm Ht.
 Qed.
 
-Lemma forcing_abst : forall σ ω t Ht,
+Lemma red_forcing_abst : forall σ ω t Ht,
   { H |
   forcing σ ω (abst t) Ht =
   let (x, Hx) := fresh (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
@@ -51,6 +51,16 @@ intros; caseSTerm Ht; cbn.
 eexists; reflexivity.
 Qed.
 
+Lemma red_forcing_app : forall σ ω t u Htu,
+  { H |
+  forcing σ ω (appl t u) Htu =
+  let (α, _) := fresh (VSet.union (fv u) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
+  (forcing σ ω t (fst H)) @ λ[ω] λ[α] (forcing (cons α σ) ω u (snd H))
+  }%term.
+Proof.
+intros; caseSTerm Htu; cbn.
+exists (Ht, Hu); reflexivity.
+Qed.
 
 Lemma Term_forcing : forall σ ω t Ht, Term (forcing σ ω t Ht).
 Proof.
@@ -84,17 +94,26 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
 + apply IHHt2 in H; simplify_vset; intuition eauto.
 Qed.
 
+Axiom F : False.
+
 Lemma forcing_subst : forall t x r σ ω Ht Hr Hs,
-  red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << fvar x) Ht | x := forcing σ ω r Hr].
+  clos_refl_sym_trans _ red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << fvar x) Ht | x := forcing σ ω r Hr].
 Proof.
 induction t; intros x r σ ω Ht Hr Hs; cbn in *.
-+ assert (Hrw : Ht = Hs); [revert Hs; caseSTerm Ht; intros Hs; caseSTerm Hs|destruct Hrw].
-  replace Ht with (STerm_fvar t) by caseSTerm Ht; cbn in *.
-  admit.
++ repeat rewrite red_forcing_fvar; cbn.
+  destruct F.
 + destruct Nat.eq_dec.
-  - admit.
-  - admit.
-+ caseSTerm Hs.
+  - destruct F.
+  - destruct F.
++ destruct F.
++ destruct (red_forcing_abst σ ω _ Ht) as [Ht' Hrw].
+  rewrite Hrw; clear Hrw; destruct fresh as [y Hy].
+  destruct (red_forcing_abst σ ω _ Hs) as [Hs' Hrw].
+  rewrite Hrw; clear Hrw; destruct fresh as [z Hz].
+  destruct F.
++ destruct F.
++ destruct F.
+Qed.
 
 Lemma forcing_red : forall t r σ ω Ht Hr,
   red t r -> red (forcing σ ω t Ht) (forcing σ ω r Hr).
