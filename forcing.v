@@ -40,7 +40,6 @@ Proof.
 intros; caseSTerm Ht.
 Qed.
 
-(*
 Lemma forcing_abst : forall σ ω t Ht,
   { H |
   forcing σ ω (abst t) Ht =
@@ -48,9 +47,9 @@ Lemma forcing_abst : forall σ ω t Ht,
   λ[x] (forcing σ ω (t << fvar x) (H x Hx))
   }%term.
 Proof.
-intros; caseSTerm Ht.
+intros; caseSTerm Ht; cbn.
+eexists; reflexivity.
 Qed.
-*)
 
 
 Lemma Term_forcing : forall σ ω t Ht, Term (forcing σ ω t Ht).
@@ -84,13 +83,18 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
 + apply IHHt1 in H; simplify_vset; intuition eauto.
 + apply IHHt2 in H; simplify_vset; intuition eauto.
 Qed.
-(*
+
 Lemma forcing_subst : forall t x r σ ω Ht Hr Hs,
-  red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << (fvar x)) Ht | x := forcing σ ω r Hr].
+  red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << fvar x) Ht | x := forcing σ ω r Hr].
 Proof.
 induction t; intros x r σ ω Ht Hr Hs; cbn in *.
-+ revert Hs; caseSTerm Ht; clear Ht; intros Hs; caseSTerm Hs; clear Hs; cbn in *.
-  destruct VSetFacts.eq_dec.
++ assert (Hrw : Ht = Hs); [revert Hs; caseSTerm Ht; intros Hs; caseSTerm Hs|destruct Hrw].
+  replace Ht with (STerm_fvar t) by caseSTerm Ht; cbn in *.
+  admit.
++ destruct Nat.eq_dec.
+  - admit.
+  - admit.
++ caseSTerm Hs.
 
 Lemma forcing_red : forall t r σ ω Ht Hr,
   red t r -> red (forcing σ ω t Ht) (forcing σ ω r Hr).
