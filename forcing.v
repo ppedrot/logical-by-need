@@ -1,5 +1,5 @@
 Require Import Omega.
-Require lambda.
+Require lambda typing.
 
 Module Spec
   (Var : Orders.UsualOrderedType)
@@ -9,6 +9,7 @@ Module Spec
 
 Module Import VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
 Module Import Lambda := lambda.Spec(Var)(VSet)(Fresh).
+Module Import Typing := typing.Spec(Var)(VSet)(Fresh).
 
 Fixpoint comps (σ : list Var.t) : term :=
 match σ with
@@ -93,7 +94,7 @@ induction Ht; intros σ ω y Hy; cbn in *; simplify_vset_hyps; simplify_vset_goa
 + apply IHHt1 in H; simplify_vset; intuition eauto.
 + apply IHHt2 in H; simplify_vset; intuition eauto.
 Qed.
-
+(*
 Lemma forcing_subst : forall t x r σ ω Ht Hr Hs,
   red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << (fvar x)) Ht | x := forcing σ ω r Hr].
 Proof.
@@ -104,6 +105,6 @@ induction t; intros x r σ ω Ht Hr Hs; cbn in *.
 Lemma forcing_red : forall t r σ ω Ht Hr,
   red t r -> red (forcing σ ω t Ht) (forcing σ ω r Hr).
 Proof.
-
+*)
 
 End Spec.
