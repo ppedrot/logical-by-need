@@ -1,4 +1,4 @@
-Require Import Omega vars.
+Require Import Omega Relations vars.
 
 Inductive term :=
 | fvar : Var.t -> term
@@ -92,6 +92,13 @@ Inductive red : term -> term -> Prop :=
 | red_beta : forall t u, red (appl (abst t) u) (t << u)
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
 | red_appl_r : forall t u r, red u r -> red (appl t u) (appl t r).
+
+Definition betaeq : relation term := clos_refl_sym_trans _ red.
+
+Instance Equivalence_betaeq : RelationClasses.Equivalence betaeq.
+Proof.
+split; apply clos_rst_is_equiv.
+Qed.
 
 Lemma open_inj : forall t n1 n2 r1 r2, n1 <> n2 ->
   open t n1 r1 = open (open t n1 r1) n2 r2 -> t = open t n2 r2.

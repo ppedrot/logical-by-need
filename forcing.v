@@ -112,7 +112,6 @@ induction t; intros x r σ ω Ht Hr Hs; cbn in *.
   rewrite Hrw; clear Hrw; destruct fresh as [z Hz].
   clear Hs; set (Hs := Hs' z Hz); clearbody Hs; clear Hs'.
   clear Ht; set (Ht := Ht' y Hy); clearbody Ht; clear Ht'.
-  rewrite IHt.
   destruct F.
 + destruct F.
 + destruct F.
