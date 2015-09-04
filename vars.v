@@ -68,6 +68,8 @@ match type of H with
   rewrite VSet.union_spec in H
 | context [VSet.In ?x (VSet.add ?p ?q)] =>
   rewrite VSet.add_spec in H
+| context [VSet.In ?x (VSet.singleton ?y)] =>
+  rewrite VSetFacts.singleton_iff in H
 | context [VSet.In ?x VSet.empty] =>
   rewrite VSetFacts.empty_iff in H
 end.
@@ -78,6 +80,8 @@ match goal with
   rewrite VSet.union_spec
 | |- context [VSet.In ?x (VSet.add ?p ?q)] =>
   rewrite VSet.add_spec
+| |- context [VSet.In ?x (VSet.singleton ?y)] =>
+  rewrite VSetFacts.singleton_iff
 | |- context [VSet.In ?x VSet.empty] =>
   rewrite VSetFacts.empty_iff
 end.
@@ -98,3 +102,24 @@ Ltac simplify_vset_hyps :=
   repeat match goal with [ H : ?P |- _ ] => progress (simplify_vset_hyp H) end.
 
 Ltac simplify_vset := simplify_vset_hyps; simplify_vset_goal.
+
+Class Nominal (A : Type) (x : A) (s : VSet.t).
+Definition vars {A s} (x : A) {_ : Nominal A x s} := s.
+
+Instance Nominal_var : forall x, Nominal Var.t x (VSet.singleton x).
+Instance Nominal_vset : forall s, Nominal VSet.t s s.
+
+Ltac get_nominal l f :=
+match goal with
+| [ x : ?T |- _ ] =>
+  let v := constr:(vars x) in
+  let v := match v with @vars _ ?s _ _ => s end in
+  check_not_in l v;
+  get_nominal (cons v l) f
+| _ => f l
+end.
+
+Ltac gather_ f :=
+  get_nominal (@nil VSet.t) ltac:(fun l =>
+  let s := constr:(List.fold_left (fun accu x => VSet.union x accu) l VSet.empty) in
+  f s).

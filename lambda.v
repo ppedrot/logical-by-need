@@ -60,6 +60,8 @@ match t with
 | refl => VSet.empty
 end.
 
+Instance Nominal_term : forall t, Nominal term t (fv t).
+
 Fixpoint close (t : term) (x : Var.t) (n : nat) :=
 match t with
 | fvar y => if Var.eq_dec x y then bvar n else fvar y
@@ -71,15 +73,6 @@ match t with
 end.
 
 Notation "λ[ x ] t" := (λ (close t x 0))%term (at level 80, t at level 0, format "λ[ x ] t") : trm_scope.
-
-Ltac gather_ f :=
-  get Var.t (@nil Var.t) ltac:(fun l =>
-  get VSet.t (@nil VSet.t) ltac:(fun ls =>
-  get term (@nil term) ltac:(fun lt =>
-  let r0 := constr:(List.fold_left (fun accu s => VSet.union s accu) ls VSet.empty) in
-  let r1 := constr:(List.fold_left (fun accu t => VSet.union (fv t) accu) lt r0) in
-  let s := constr:(List.fold_left (fun accu x => VSet.add x accu) l r1) in
-  f s))).
 
 Ltac pick x :=
   gather_ ltac:(fun s =>
