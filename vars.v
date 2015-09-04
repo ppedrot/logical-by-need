@@ -42,3 +42,59 @@ Qed.
 End Fresh.
 
 Module Export VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
+
+Ltac check_not_in l x :=
+match l with
+| nil => idtac
+| cons ?y ?l => try (constr_eq x y; fail 2 x y) ; check_not_in l x
+end.
+
+Ltac get T l f :=
+match goal with
+| [ x : ?T' |- _ ] => unify T T'; check_not_in l x; get T (cons x l) f
+| _ => f l
+end.
+
+Ltac fold_not_hyp H :=
+  let t := type of H in
+  match t with context [?P -> False] => fold (not P) in H end.
+
+Ltac fold_not_goal :=
+  match goal with |- context [?P -> False] => fold (not P) end.
+
+Ltac simplify_vset_one_hyp H :=
+match type of H with
+| context [VSet.In ?x (VSet.union ?p ?q)] =>
+  rewrite VSet.union_spec in H
+| context [VSet.In ?x (VSet.add ?p ?q)] =>
+  rewrite VSet.add_spec in H
+| context [VSet.In ?x VSet.empty] =>
+  rewrite VSetFacts.empty_iff in H
+end.
+
+Ltac simplify_vset_one_goal :=
+match goal with
+| |- context [VSet.In ?x (VSet.union ?p ?q)] =>
+  rewrite VSet.union_spec
+| |- context [VSet.In ?x (VSet.add ?p ?q)] =>
+  rewrite VSet.add_spec
+| |- context [VSet.In ?x VSet.empty] =>
+  rewrite VSetFacts.empty_iff
+end.
+
+Ltac simplify_vset_hyp H :=
+  repeat simplify_vset_one_hyp H; 
+  unfold not in H;
+  repeat rewrite Decidable.not_or_iff in H;
+  repeat (fold_not_hyp H).
+
+Ltac simplify_vset_goal :=
+  repeat simplify_vset_one_goal;
+  unfold not;
+  repeat rewrite Decidable.not_or_iff;
+  repeat fold_not_goal.
+
+Ltac simplify_vset_hyps :=
+  repeat match goal with [ H : ?P |- _ ] => progress (simplify_vset_hyp H) end.
+
+Ltac simplify_vset := simplify_vset_hyps; simplify_vset_goal.
