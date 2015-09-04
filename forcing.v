@@ -116,7 +116,7 @@ induction t; intros x r σ ω Ht Hr Hs; cbn in *.
 + destruct F.
 + destruct F.
 Qed.
-
+(*
 Lemma forcing_red : forall t r σ ω Ht Hr,
   red t r -> red (forcing σ ω t Ht) (forcing σ ω r Hr).
 Proof.

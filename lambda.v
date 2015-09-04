@@ -95,6 +95,8 @@ Inductive red : term -> term -> Prop :=
 
 Definition betaeq : relation term := clos_refl_sym_trans _ red.
 
+Notation "t ≡β u" := (betaeq t u) (at level 70).
+
 Instance Equivalence_betaeq : RelationClasses.Equivalence betaeq.
 Proof.
 split; apply clos_rst_is_equiv.
