@@ -1,3 +1,4 @@
 -R . Forcing
 lambda.v
+typing.v
 forcing.v

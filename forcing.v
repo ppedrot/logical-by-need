@@ -1,20 +1,10 @@
-Require MSets.
 Require Import Omega.
 Require lambda.
-
-Module Type Fresh
-  (Var : Orders.UsualOrderedType)
-  (VSet : MSetInterface.SetsOn(Var)).
-
-Parameter fresh : forall s : VSet.t, {v | ~ VSet.In v s}.
-
-End Fresh.
-
 
 Module Spec
   (Var : Orders.UsualOrderedType)
   (VSet : MSetInterface.SetsOn(Var))
-  (Import Fresh : Fresh(Var)(VSet))
+  (Import Fresh : lambda.Fresh(Var)(VSet))
 .
 
 Module Import VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
@@ -43,6 +33,34 @@ end%term
 ).
 clear - Hx; abstract (simplify_vset_hyps; intuition eauto).
 Defined.
+
+Local Ltac caseSTerm v :=
+refine (match v with
+| STerm_fvar x => _
+| STerm_appl t u Ht Hu => _
+| STerm_abst t Ht => _
+| STerm_comp t u Ht Hu => _
+| STerm_refl => _
+end); unfold IDProp; trivial.
+
+Lemma forcing_fvar : forall σ ω x Ht,
+  forcing σ ω (fvar x) Ht = (fvar x @ fvar ω @ comps σ)%term.
+Proof.
+intros; caseSTerm Ht.
+Qed.
+
+(*
+Lemma forcing_abst : forall σ ω t Ht,
+  { H |
+  forcing σ ω (abst t) Ht =
+  let (x, Hx) := fresh (VSet.union (fv t) (VSet.add ω (List.fold_right VSet.add VSet.empty σ))) in
+  λ[x] (forcing σ ω (t << fvar x) (H x Hx))
+  }%term.
+Proof.
+intros; caseSTerm Ht.
+Qed.
+*)
+
 
 Lemma Term_forcing : forall σ ω t Ht, Term (forcing σ ω t Ht).
 Proof.
@@ -78,7 +96,10 @@ Qed.
 
 Lemma forcing_subst : forall t x r σ ω Ht Hr Hs,
   red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << (fvar x)) Ht | x := forcing σ ω r Hr].
-
+Proof.
+induction t; intros x r σ ω Ht Hr Hs; cbn in *.
++ revert Hs; caseSTerm Ht; clear Ht; intros Hs; caseSTerm Hs; clear Hs; cbn in *.
+  destruct VSetFacts.eq_dec.
 
 Lemma forcing_red : forall t r σ ω Ht Hr,
   red t r -> red (forcing σ ω t Ht) (forcing σ ω r Hr).
