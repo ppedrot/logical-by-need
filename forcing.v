@@ -97,7 +97,7 @@ Qed.
 Axiom F : False.
 
 Lemma forcing_subst : forall t x r σ ω Ht Hr Hs,
-  clos_refl_sym_trans _ red (forcing σ ω (t << r) Hs) [ forcing σ ω (t << fvar x) Ht | x := forcing σ ω r Hr].
+  betaeq (forcing σ ω (t << r) Hs) [ forcing σ ω (t << fvar x) Ht | x := forcing σ ω r Hr].
 Proof.
 induction t; intros x r σ ω Ht Hr Hs; cbn in *.
 + repeat rewrite red_forcing_fvar; cbn.
