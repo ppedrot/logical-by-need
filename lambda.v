@@ -1,22 +1,4 @@
-Require MSets.
-Require Import Omega.
-
-Module Type Fresh
-  (Var : Orders.UsualOrderedType)
-  (VSet : MSetInterface.SetsOn(Var)).
-
-Parameter fresh : forall s : VSet.t, {v | ~ VSet.In v s}.
-
-End Fresh.
-
-
-Module Spec
-  (Var : Orders.UsualOrderedType)
-  (VSet : MSetInterface.SetsOn(Var))
-  (Import Fresh : Fresh(Var)(VSet))
-.
-
-Module Import VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
+Require Import Omega vars.
 
 Ltac check_not_in l x :=
 match l with
@@ -566,5 +548,3 @@ intros x t; revert x; induction t; intros; cbn in *; simplify_vset; intuition ea
 Qed.
 
 End FV.
-
-End Spec.

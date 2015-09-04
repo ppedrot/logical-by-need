@@ -1,4 +1,5 @@
 -R . Forcing
+vars.v
 lambda.v
 typing.v
 forcing.v
