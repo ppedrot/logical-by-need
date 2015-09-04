@@ -29,6 +29,16 @@ Qed.
 End Var.
 
 Module VSet : MSetInterface.SetsOn(Var) := MSetAVL.Make(Var).
-Declare Module Export Fresh : FreshS(Var)(VSet).
+Module Export Fresh : FreshS(Var)(VSet).
+
+Definition fresh : forall s : VSet.t, {v | ~ VSet.In v s}.
+Proof.
+intros s; destruct (Var.fresh (VSet.elements s)) as [x Hx].
+exists x; intros Hi.
+apply VSet.elements_spec1 in Hi.
+apply SetoidList.InA_alt in Hi; destruct Hi as [y [Hrw Hi]]; subst; intuition.
+Qed.
+
+End Fresh.
 
 Module Export VSetFacts := MSetFacts.WFactsOn(Var)(VSet).
