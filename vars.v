@@ -109,6 +109,8 @@ Definition vars {A s} (x : A) {_ : Nominal A x s} := s.
 Instance Nominal_var : forall x, Nominal Var.t x (VSet.singleton x).
 Instance Nominal_vset : forall s, Nominal VSet.t s s.
 
+Notation "x ∈ y" := (VSet.In x (vars y)) (at level 70, no associativity).
+
 Ltac get_nominal l f :=
 match goal with
 | [ x : ?T |- _ ] =>
