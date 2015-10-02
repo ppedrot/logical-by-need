@@ -13,12 +13,12 @@ Delimit Scope trm_scope with term.
 Notation "'λ' t" := (abst t) (at level 80, t at level 0, format "'λ'  t") : trm_scope.
 Notation "t @ u" := (appl t u) (at level 20, left associativity) : trm_scope.
 
-Fixpoint open (t : term) (n : nat) (r : term) :=
+Fixpoint open (t : term) (n : nat) (y : Var.t) :=
 match t with
 | fvar x => fvar x
-| bvar m => if PeanoNat.Nat.eq_dec m n then r else bvar m
-| appl t u => appl (open t n r) (open u n r)
-| abst t => abst (open t (S n) r)
+| bvar m => if PeanoNat.Nat.eq_dec m n then fvar y else bvar m
+| appl t u => appl (open t n y) (open u n y)
+| abst t => abst (open t (S n) y)
 end.
 
 Notation "t << u" := (open t 0 u) (at level 50, left associativity).
@@ -27,7 +27,7 @@ Inductive Term : term -> Prop :=
 | Term_fvar : forall x, Term (fvar x)
 | Term_appl : forall t u, Term t -> Term u -> Term (appl t u)
 | Term_abst : forall L t,
-  (forall x, ~ VSet.In x L -> Term (t << fvar x)) ->
+  (forall x, ~ VSet.In x L -> Term (t << x)) ->
   Term (abst t)
 .
 
@@ -78,7 +78,7 @@ Ltac gather L :=
   cbn [fv List.fold_left] in L).
 
 Inductive red : term -> term -> Prop :=
-| red_beta : forall t u, red (appl (abst t) u) (t << u)
+(* | red_beta : forall t u, red (appl (abst t) u) (t << u) *)
 | red_appl_l : forall t u r, red t r -> red (appl t u) (appl r u)
 | red_appl_r : forall t u r, red u r -> red (appl t u) (appl t r).
 
@@ -107,8 +107,8 @@ induction Ht; intros n; cbn in *; f_equal; intuition eauto.
 pick x; erewrite <- (open_inj _ 0); [|omega|symmetry]; intuition eauto.
 Qed.
 
-Lemma open_subst_trans : forall t n x r,
-  ~ VSet.In x (fv t) -> [ open t n (fvar x) | x := r ] = open t n r.
+Lemma open_subst_trans : forall t n x y,
+  ~ VSet.In x (fv t) -> [ open t n x | x := fvar y ] = open t n y.
 Proof.
 intros t.
 induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
@@ -116,6 +116,7 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct Nat.eq_dec; cbn; [destruct eq_dec|]; intuition.
 Qed.
 
+(*
 Lemma Term_subst_distr : forall t n u x r, Term r ->
   [ open t n u | x := r ] = open [t | x := r] n [u | x := r].
 Proof.
@@ -125,6 +126,7 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
   rewrite Term_open_idem; now intuition.
 + destruct Nat.eq_dec; cbn; intuition.
 Qed.
+*)
 
 Lemma Term_subst_idem : forall t x r, ~ VSet.In x (fv t) -> [ t | x := r ] = t.
 Proof.
@@ -132,12 +134,14 @@ induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
 + destruct eq_dec; intuition eauto.
 Qed.
 
-Lemma subst_comm : forall t n u x r, Term r -> ~ VSet.In x (fv u) ->
-  [ open t n u | x := r ] = open [t | x := r] n u.
+Lemma subst_comm : forall t n y x r, Term r -> ~ Var.eq x y ->
+  [ open t n y | x := r ] = open [t | x := r] n y.
 Proof.
-intros.
-rewrite <- (Term_subst_idem u x r) at 2; [|assumption].
-apply Term_subst_distr; assumption.
+induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
++ destruct eq_dec; intuition eauto.
+  rewrite Term_open_idem; now intuition.
++ destruct Nat.eq_dec; cbn; intuition.
+  destruct eq_dec; intuition eauto.
 Qed.
 
 Lemma Term_subst_compat : forall t x r,
@@ -147,17 +151,16 @@ intros t x r Ht Hr; induction Ht; cbn; try solve [intuition eauto].
 + destruct eq_dec; subst; intuition.
 + gather L'; apply Term_abst with L'; intros; unfold L' in *.
   simplify_vset_hyps; rewrite <- subst_comm; cbn in *; intuition eauto.
-  simplify_vset_hyps; intuition eauto.
 Qed.
 
-Lemma open_comm : forall t n1 n2 r1 r2, Term r1 -> Term r2 -> n1 <> n2 -> 
+Lemma open_comm : forall t n1 n2 r1 r2, n1 <> n2 -> 
   open (open t n1 r1) n2 r2 = open (open t n2 r2) n1 r1.
 Proof.
 induction t; intros; cbn in *; try solve [f_equal; intuition eauto].
 repeat (destruct Nat.eq_dec; cbn); try rewrite Term_open_idem; (omega || intuition eauto).
 Qed.
 
-Lemma close_open : forall t x, ~ VSet.In x (fv t) -> close (t << fvar x) x 0 = t.
+Lemma close_open : forall t x, ~ VSet.In x (fv t) -> close (t << x) x 0 = t.
 Proof.
 intros t; generalize 0.
 induction t; intros; cbn in *; simplify_vset_hyps; f_equal; intuition eauto.
@@ -183,14 +186,15 @@ Proof.
 intros; split; [intros ->; eelim close_not_fv; eauto|eapply close_fv_from; eauto].
 Qed.
 
-Lemma open_close : forall t x (n : nat) r, Term r -> ~ VSet.In x (fv r) ->
-  open (close t x n) n r = [open t n r | x := r].
+Lemma open_close : forall t x (n : nat) y, ~ Var.eq x y ->
+  open (close t x n) n y = [open t n y | x := fvar y].
 Proof.
-intros t; induction t; intros y m r Hr Hx; cbn in *; f_equal; intuition eauto.
+intros t; induction t; intros x m y H; cbn in *; f_equal; intuition eauto.
 + destruct eq_dec; cbn; intuition.
   destruct Nat.eq_dec; intuition congruence.
 + destruct Nat.eq_dec; intuition.
   symmetry; apply Term_subst_idem; intuition.
+  cbn in *; simplify_vset; intuition.
 Qed.
 
 Lemma Term_close : forall t x, Term t -> Term (λ[x] t).
@@ -230,7 +234,7 @@ match t with
 | fvar x => fvar x
 | bvar m =>
   let r := if lt_dec m n then None else List.nth_error r (m - n) in
-  match r with None => bvar m | Some r => r end
+  match r with None => bvar m | Some r => fvar r end
 | (t0 @ u)%term => (opens t0 n r @ opens u n r)%term
 | (λ t0)%term => (λ (opens t0 (S n) r))%term
 end.
@@ -248,10 +252,9 @@ match rs with
 end.
 
 Lemma opens_open_l : forall t n r rs,
-  List.Forall Term rs ->
   opens t n (cons r rs) = open (opens t (S n) rs) n r.
 Proof.
-induction t; intros m r rs Hrs; cbn in *; try solve [f_equal; intuition eauto].
+induction t; intros m r rs; cbn in *; try solve [f_equal; intuition eauto].
 destruct lt_dec.
 + destruct lt_dec; [|exfalso; omega].
   cbn; destruct Nat.eq_dec; [exfalso; omega|trivial].
@@ -259,22 +262,17 @@ destruct lt_dec.
   - replace (n - m) with 0 by omega; cbn.
     destruct Nat.eq_dec; [reflexivity|omega].
   - replace (n - m) with (S (n - S m)) by omega; cbn in *.
-    case_eq (List.nth_error rs (n - S m)); cbn.
-    { intros; symmetry; apply Term_open_idem.
-      eapply List.Forall_forall in Hrs; [eassumption|].
-      eapply List.nth_error_In; eassumption. }
-    { intros; destruct Nat.eq_dec; [omega|trivial]. }
+    case_eq (List.nth_error rs (n - S m)); cbn; [now intuition|].
+    intros; destruct Nat.eq_dec; [omega|trivial].
 Qed.
 
-
-Lemma opens_openr : forall t n rs, List.Forall Term rs -> opens t n rs = openr t n rs.
+Lemma opens_openr : forall t n rs, opens t n rs = openr t n rs.
 Proof.
-intros t n rs; revert t n; induction rs as [|r rs]; intros t n Hrs; cbn in *.
+intros t n rs; revert t n; induction rs as [|r rs]; intros t n; cbn in *.
 + clear; revert n; induction t; intros m; cbn; try solve [f_equal; intuition eauto].
   destruct lt_dec; [reflexivity|].
   destruct (n - m); reflexivity.
-+ rewrite <- IHrs; [|inversion Hrs; assumption].
-  rewrite opens_open_l; [|inversion Hrs; assumption].
++ rewrite <- IHrs, opens_open_l.
   reflexivity.
 Qed.
 
@@ -335,25 +333,22 @@ Qed.
  *)
 
 Lemma opens_open_comm : forall t n m r rs,
-  n < m -> List.Forall Term rs -> Term r ->
-  open (opens t m rs) n r = opens (open t n r) m rs.
+  n < m -> open (opens t m rs) n r = opens (open t n r) m rs.
 Proof.
-induction t; intros m m' r rs Hm Hrs Hr; cbn in *; try solve [f_equal; intuition eauto].
+induction t; intros m m' r rs Hm; cbn in *; try solve [f_equal; intuition eauto].
 + destruct lt_dec; cbn in *.
-  - destruct Nat.eq_dec; cbn; [|].
-    { symmetry; apply Term_opens_idem; assumption. }
-    { destruct lt_dec; [reflexivity|omega]. }
+  - destruct Nat.eq_dec; cbn; [now trivial|].
+    destruct lt_dec; [reflexivity|omega].
   - destruct Nat.eq_dec; cbn in *; [omega|].
     destruct lt_dec; [omega|].
-    case_eq (List.nth_error rs (n - m')); cbn.
-    { intros t Ht; apply Term_open_idem; eapply List.nth_error_In, List.Forall_forall in Ht; eassumption. }
-    { intros _; destruct Nat.eq_dec; [omega|reflexivity]. }
+    case_eq (List.nth_error rs (n - m')); cbn; [now intuition|].
+    intros _; destruct Nat.eq_dec; [omega|reflexivity].
 + f_equal; apply IHt; try (assumption || omega).
 Qed.
 
 Lemma Term_abst_weak : forall L t n x,
-  (forall y, ~ VSet.In y L -> Term (open t n (fvar y))) ->
-  ~ VSet.In x (fv t) -> Term (open t n (fvar x)).
+  (forall y, ~ VSet.In y L -> Term (open t n y)) ->
+  ~ VSet.In x (fv t) -> Term (open t n x).
 Proof.
 intros; pick y.
 erewrite <- (open_subst_trans _ _ y); [|intuition eauto].
@@ -362,20 +357,15 @@ Qed.
 
 Lemma OTerm_Term_n : forall n t (r : list Var.t),
   List.length r = n ->
-  OTerm n t -> Term (opens t 0 (List.map fvar r)).
+  OTerm n t -> Term (opens t 0 r).
 Proof.
 intros n t r Hr Ht; revert r Hr.
 induction Ht; intros r Hr; cbn; try solve [intuition eauto].
 + replace (m - 0) with m by omega.
-  case_eq (List.nth_error (List.map fvar r) m); cbn.
-  - intros t Ht; apply List.nth_error_In in Ht.
-    clear - Ht; induction r; cbn in *; intuition.
-    subst t; intuition.
-  - intros H; apply List.nth_error_None in H; rewrite List.map_length in H; omega.
+  case_eq (List.nth_error r m); cbn; [now intuition|].
+  intros H; apply List.nth_error_None in H; omega.
 + gather L; apply Term_abst with L; intros x Hx.
-  assert (HT : List.Forall Term (List.map fvar r)).
-  { clear; induction r; cbn in *; constructor; intuition eauto. }
-  rewrite <- opens_open_l; [|intuition].
+  rewrite <- opens_open_l.
   apply (IHHt (cons x r)); cbn; congruence.
 Qed.
 
@@ -411,7 +401,7 @@ Lemma Term_OTerm_0 : forall t, Term t -> OTerm 0 t.
 Proof.
 intros t Ht; apply is_Term_OTerm; induction Ht; cbn in *;
 try apply Bool.andb_true_iff; intuition eauto.
-pick x; assert (Hx : is_Term (t << fvar x) 0 = true) by intuition eauto.
+pick x; assert (Hx : is_Term (t << x) 0 = true) by intuition eauto.
 revert Hx; clear.
 generalize 0; induction t; intros m Ht; cbn in *;
 try apply Bool.andb_true_iff; try apply Bool.andb_true_iff in Ht;
@@ -426,7 +416,7 @@ Inductive STerm : term -> Type :=
 | STerm_fvar : forall x, STerm (fvar x)
 | STerm_appl : forall t u, STerm t -> STerm u -> STerm (appl t u)
 | STerm_abst : forall t,
-  (forall x, ~ VSet.In x (fv t) -> STerm (t << fvar x)) ->
+  (forall x, ~ VSet.In x (fv t) -> STerm (t << x)) ->
   STerm (abst t)
 .
 
@@ -434,22 +424,19 @@ Hint Constructors STerm.
 
 Lemma OTerm_STerm_n : forall n t (r : list Var.t),
   List.length r = n ->
-  OTerm n t -> STerm (opens t 0 (List.map fvar r)).
+  OTerm n t -> STerm (opens t 0 r).
 Proof.
 intros n t r Hr Ht; revert r Hr.
 induction Ht; intros r Hr; cbn; try solve [intuition eauto].
 + replace (m - 0) with m by omega.
-  case_eq (List.nth_error (List.map fvar r) m); cbn.
+  case_eq (List.nth_error r m); cbn.
   - intros t Ht; apply List.nth_error_In in Ht.
-    assert (H : exists x, t = fvar x).
-    { clear - Ht; induction r; cbn in *; intuition eauto. }
-    destruct t; try (exfalso; destruct H; congruence).
     constructor.
-  - intros H; apply List.nth_error_None in H; rewrite List.map_length in H; omega.
+  - intros H; apply List.nth_error_None in H; omega.
 + apply STerm_abst; intros x Hx.
   assert (HT : List.Forall Term (List.map fvar r)).
   { clear; induction r; cbn in *; constructor; intuition eauto. }
-  rewrite <- opens_open_l; [|intuition].
+  rewrite <- opens_open_l.
   apply (IHHt (cons x r)); cbn; congruence.
 Qed.
 
@@ -464,6 +451,7 @@ Qed.
 
 Module FV.
 
+(*
 Lemma fv_open : forall x t n r,
   VSet.In x (fv (open t n r)) -> VSet.In x (fv t) \/ VSet.In x (fv r).
 Proof.
@@ -472,5 +460,6 @@ intros x t; revert x; induction t; intros; cbn in *; simplify_vset; intuition ea
 + apply IHt1 in H0; intuition eauto.
 + apply IHt2 in H0; intuition eauto.
 Qed.
+*)
 
 End FV.
