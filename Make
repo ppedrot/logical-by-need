@@ -1,5 +1,4 @@
--R . Forcing
+-R . LogicalByNeed
 vars.v
 lambda.v
 typing.v
-forcing.v

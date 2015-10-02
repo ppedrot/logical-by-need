@@ -5,8 +5,7 @@ Inductive term :=
 | bvar : nat -> term
 | appl : term -> term -> term
 | abst : term -> term
-| comp : term -> term -> term
-| refl : term.
+.
 
 Bind Scope trm_scope with term.
 Delimit Scope trm_scope with term.
@@ -20,8 +19,6 @@ match t with
 | bvar m => if PeanoNat.Nat.eq_dec m n then r else bvar m
 | appl t u => appl (open t n r) (open u n r)
 | abst t => abst (open t (S n) r)
-| comp t u => comp (open t n r) (open u n r)
-| refl => refl
 end.
 
 Notation "t << u" := (open t 0 u) (at level 50, left associativity).
@@ -32,8 +29,6 @@ Inductive Term : term -> Prop :=
 | Term_abst : forall L t,
   (forall x, ~ VSet.In x L -> Term (t << fvar x)) ->
   Term (abst t)
-| Term_comp : forall t u, Term t -> Term u -> Term (comp t u)
-| Term_refl : Term refl
 .
 
 Hint Constructors Term.
@@ -44,8 +39,6 @@ match t with
 | bvar m => bvar m
 | appl t u => appl (subst t x r) (subst u x r)
 | abst t => abst (subst t x r)
-| comp t u => comp (subst t x r) (subst u x r)
-| refl => refl
 end.
 
 Notation "[ t | x := r ]" := (subst t x r).
@@ -56,8 +49,6 @@ match t with
 | bvar m => VSet.empty
 | appl t u => VSet.union (fv t) (fv u)
 | abst t => fv t
-| comp t u => VSet.union (fv t) (fv u)
-| refl => VSet.empty
 end.
 
 Instance Nominal_term : forall t, Nominal term t (fv t).
@@ -68,8 +59,6 @@ match t with
 | bvar m => bvar m
 | appl t u => appl (close t x n) (close u x n)
 | abst t => abst (close t x (S n))
-| comp t u => comp (close t x n) (close u x n)
-| refl => refl
 end.
 
 Notation "λ[ x ] t" := (λ (close t x 0))%term (at level 80, t at level 0, format "λ[ x ] t") : trm_scope.
@@ -227,8 +216,6 @@ match t with
 | bvar m => m <? n
 | appl t u => is_Term t n && is_Term u n
 | abst t => is_Term t (S n)
-| comp t u => is_Term t n && is_Term u n
-| refl => true
 end.
 
 Inductive OTerm n : term -> Type :=
@@ -236,8 +223,7 @@ Inductive OTerm n : term -> Type :=
 | OTerm_bvar : forall m, m < n -> OTerm n (bvar m)
 | OTerm_appl : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (t @ u)
 | OTerm_abst : forall (t : term), (OTerm (S n) t) -> OTerm n (λ t)
-| OTerm_comp : forall t u : term, OTerm n t -> OTerm n u -> OTerm n (comp t u)
-| OTerm_refl : OTerm n refl.
+.
 
 Fixpoint opens t n r :=
 match t with
@@ -247,8 +233,6 @@ match t with
   match r with None => bvar m | Some r => r end
 | (t0 @ u)%term => (opens t0 n r @ opens u n r)%term
 | (λ t0)%term => (λ (opens t0 (S n) r))%term
-| comp t0 u => comp (opens t0 n r) (opens u n r)
-| refl => refl
 end.
 
 Fixpoint openr t n rs :=
@@ -444,8 +428,6 @@ Inductive STerm : term -> Type :=
 | STerm_abst : forall t,
   (forall x, ~ VSet.In x (fv t) -> STerm (t << fvar x)) ->
   STerm (abst t)
-| STerm_comp : forall t u, STerm t -> STerm u -> STerm (comp t u)
-| STerm_refl : STerm refl
 .
 
 Hint Constructors STerm.
@@ -487,8 +469,6 @@ Lemma fv_open : forall x t n r,
 Proof.
 intros x t; revert x; induction t; intros; cbn in *; simplify_vset; intuition eauto.
 + destruct Nat.eq_dec; cbn in *; simplify_vset; intuition.
-+ apply IHt1 in H0; intuition eauto.
-+ apply IHt2 in H0; intuition eauto.
 + apply IHt1 in H0; intuition eauto.
 + apply IHt2 in H0; intuition eauto.
 Qed.
